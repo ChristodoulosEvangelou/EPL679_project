@@ -4,6 +4,8 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.Button;
+import android.widget.Toast;
+
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -26,9 +28,20 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         Button btnConnect = findViewById(R.id.btnConnectGarmin);
+//        btnConnect.setOnClickListener(v -> {
+//            // άνοιξε το registration flow (WebView)
+//            startActivity(new Intent(this, GarminLinkActivity.class));
+//        });
+        // MainActivity.java (στο onClick του Connect)
         btnConnect.setOnClickListener(v -> {
-            // άνοιξε το registration flow (WebView)
-            startActivity(new Intent(this, GarminLinkActivity.class));
+            String cookie = SecureCookie.get(getApplicationContext());
+            if (cookie != null && !cookie.isEmpty()) {
+                // Ή απλώς ενημέρωσε τον χρήστη / πήγαινε κατευθείαν σε fetch
+                Toast.makeText(this, "Ήδη συνδεδεμένο. Θα χρησιμοποιήσω το υπάρχον session.", Toast.LENGTH_SHORT).show();
+                // π.χ. fetchDailies();
+            } else {
+                startActivity(new Intent(this, GarminLinkActivity.class));
+            }
         });
 
         Button btnFetch = findViewById(R.id.btnFetchDailies); // βάλε δεύτερο κουμπί στο XML αν θέλεις
@@ -70,15 +83,27 @@ public class MainActivity extends AppCompatActivity {
         client.newCall(request).enqueue(new Callback() {
             @Override public void onFailure(Call call, IOException e) {
                 Log.e(TAG, "Network error", e);
+                runOnUiThread(() -> {
+                    // Προβάλλε το error στην οθόνη εμφάνισης για συνέπεια
+                    Intent it = new Intent(MainActivity.this, DailiesActivity.class);
+                    it.putExtra(DailiesActivity.EXTRA_JSON,
+                            "{ \"error\": \"Network error\", \"message\": \"" + e.getMessage() + "\" }");
+                    startActivity(it);
+                });
             }
             @Override public void onResponse(Call call, Response response) throws IOException {
                 String body = response.body() != null ? response.body().string() : "";
                 Log.d(TAG, "HTTP " + response.code() + " body=" + body);
 
-                // Αν θες να ενημερώσεις UI:
                 runOnUiThread(() -> {
-                    // πχ. TextView tv = findViewById(R.id.tvResult);
-                    // tv.setText(body);
+                    Intent it = new Intent(MainActivity.this, DailiesActivity.class);
+                    // αν θες, βάλε και status code μέσα στο JSON για διάγνωση
+                    String payload = body;
+                    if (payload == null || payload.isEmpty()) {
+                        payload = "{ \"status\": " + response.code() + ", \"body\": \"\" }";
+                    }
+                    it.putExtra(DailiesActivity.EXTRA_JSON, payload);
+                    startActivity(it);
                 });
             }
         });

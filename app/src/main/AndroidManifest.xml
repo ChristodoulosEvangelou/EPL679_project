@@ -15,6 +15,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.MyApplication">
 
+        <activity android:name=".DailiesActivity"/>
         <activity android:name=".GarminLinkActivity" android:exported="false" />
         <activity
             android:name=".MainActivity"
