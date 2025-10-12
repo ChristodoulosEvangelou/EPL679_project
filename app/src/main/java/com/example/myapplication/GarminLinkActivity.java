@@ -11,21 +11,17 @@ import androidx.appcompat.app.AppCompatActivity;
 
 public class GarminLinkActivity extends AppCompatActivity {
 
-    private static final String USER_ID = "3cdf364a-da5b-453f-b0e7-6983f2f1e310";
-    private static final String DOMAIN_URL = "https://garmin-ucy.3ahealth.com";
-
-    // πιθανά ονόματα που μας έδωσαν/είδαμε στα logs
-    private static final String COOKIE_NAME_A = "[garmin-ucy.3ahealth.com]garmin-ucy.3ahealth.com";
-    private static final String COOKIE_NAME_B = "garmin-ucy-3ahealth";
-
-    private final String link = DOMAIN_URL + "/garmin/login?userId=" + USER_ID;
+    private final String link =
+            "https://garmin-ucy.3ahealth.com/garmin/login?userId=3cdf364a-da5b-453f-b0e7-6983f2f1e310";
 
     @SuppressLint("SetJavaScriptEnabled")
-    @Override protected void onCreate(Bundle savedInstanceState) {
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         WebView wv = new WebView(this);
         setContentView(wv);
+
         wv.getSettings().setJavaScriptEnabled(true);
 
         CookieManager cm = CookieManager.getInstance();
@@ -35,41 +31,19 @@ public class GarminLinkActivity extends AppCompatActivity {
         }
 
         wv.setWebViewClient(new WebViewClient() {
-            @Override public void onPageFinished(WebView view, String url) {
-                String all = cm.getCookie(DOMAIN_URL);
-                String best = extractPreferredCookie(all);
-                if (best != null) {
-                    SecureCookie.store(GarminLinkActivity.this, best); // "name=value"
-                    Toast.makeText(GarminLinkActivity.this, "Connected 👍", Toast.LENGTH_SHORT).show();
-                    finish();
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                if (url.contains("success") || url.contains("complete")) {
+                    String cookieStr = cm.getCookie("https://garmin-ucy.3ahealth.com");
+                    if (cookieStr != null && !cookieStr.isEmpty()) {
+                        SecureCookie.store(GarminLinkActivity.this, cookieStr);
+                        Toast.makeText(GarminLinkActivity.this, "Registration OK", Toast.LENGTH_SHORT).show();
+                        finish();
+                    }
                 }
-                // αν δεν βρει ακόμα, θα ξανακληθεί στο επόμενο navigation του WebView
             }
         });
 
         wv.loadUrl(link);
-    }
-
-    /** Προσπαθεί να επιστρέψει "name=value" για τα γνωστά ονόματα, αλλιώς τον πρώτο λογικό cookie pair. */
-    private String extractPreferredCookie(String raw) {
-        if (raw == null || raw.isEmpty()) return null;
-        String[] parts = raw.split(";");
-        String firstValid = null;
-
-        for (String p : parts) {
-            String t = p.trim();
-            // αγνόησε τυπικά attributes
-            if (t.equalsIgnoreCase("Secure") || t.equalsIgnoreCase("HttpOnly") || t.startsWith("Path=")
-                    || t.startsWith("Expires=") || t.startsWith("SameSite")) continue;
-
-            if (t.startsWith(COOKIE_NAME_A + "=") || t.startsWith(COOKIE_NAME_B + "=")) {
-                return t; // βρέθηκε preferred
-            }
-            // κράτα έναν πρώτο υποψήφιο "name=value" για fallback
-            if (firstValid == null && t.contains("=") && !t.startsWith("=")) {
-                firstValid = t;
-            }
-        }
-        return firstValid; // μπορεί να είναι και άλλο cookie, αλλά αρκεί αν ο proxy το δέχεται
     }
 }

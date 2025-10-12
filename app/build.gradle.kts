@@ -32,6 +32,10 @@ android {
 }
 
 dependencies {
+    implementation("androidx.security:security-crypto:1.1.0-alpha06")
+    implementation("androidx.webkit:webkit:1.9.0")
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    
     implementation(libs.security.crypto)
     implementation(libs.webkit)
     implementation(libs.okhttp)
@@ -39,7 +43,6 @@ dependencies {
     implementation(libs.material)
     implementation(libs.activity)
     implementation(libs.constraintlayout)
-
     implementation(libs.security.crypto)
     implementation(libs.webkit)
     implementation(libs.okhttp)

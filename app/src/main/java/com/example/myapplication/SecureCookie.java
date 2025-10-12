@@ -48,20 +48,4 @@ public class SecureCookie {
             return null;
         }
     }
-
-    public static void clear(Context ctx) {
-        try {
-            MasterKey masterKey = new MasterKey.Builder(ctx)
-                    .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-                    .build();
-            SharedPreferences prefs = EncryptedSharedPreferences.create(
-                    ctx,
-                    "secure_prefs",
-                    masterKey,
-                    EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-                    EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-            );
-            prefs.edit().remove("garmin_cookie").apply();
-        } catch (Exception ignored) {}
-    }
 }
