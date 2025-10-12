@@ -1,0 +1,25 @@
+# --- IDE / IntelliJ ---
+.idea/
+*.iml
+
+# --- Gradle / builds ---
+.gradle/
+**/build/
+!gradle/wrapper/gradle-wrapper.jar
+!gradlew
+!gradlew.bat
+
+# --- Local machine / config ---
+local.properties
+*.log
+.DS_Store
+
+# --- NDK / CMake ---
+.cxx/
+
+# --- Screenshots / Captures ---
+captures/
+
+# --- Output artifacts ---
+**/*.apk
+**/*.aab
