@@ -2,4 +2,7 @@
     <string name="app_name">My Application</string>
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="stress_avg_max">Stress (avg / max)</string>
+    <string name="previous">Previous day</string>
+    <string name="next">Next day</string>
 </resources>

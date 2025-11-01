@@ -36,10 +36,10 @@ public class MainActivity extends AppCompatActivity {
         btnConnect.setOnClickListener(v -> {
             String cookie = SecureCookie.get(getApplicationContext());
             if (cookie != null && !cookie.isEmpty()) {
-                // Ή απλώς ενημέρωσε τον χρήστη / πήγαινε κατευθείαν σε fetch
                 Toast.makeText(this, "Ήδη συνδεδεμένο. Θα χρησιμοποιήσω το υπάρχον session.", Toast.LENGTH_SHORT).show();
-                // π.χ. fetchDailies();
+                // Optional: fetchDailies();
             } else {
+                // Go to link/registration flow (no payload here)
                 startActivity(new Intent(this, GarminLinkActivity.class));
             }
         });
@@ -93,16 +93,13 @@ public class MainActivity extends AppCompatActivity {
             }
             @Override public void onResponse(Call call, Response response) throws IOException {
                 String body = response.body() != null ? response.body().string() : "";
-                Log.d(TAG, "HTTP " + response.code() + " body=" + body);
 
                 runOnUiThread(() -> {
                     Intent it = new Intent(MainActivity.this, DailiesActivity.class);
-                    // αν θες, βάλε και status code μέσα στο JSON για διάγνωση
-                    String payload = body;
-                    if (payload == null || payload.isEmpty()) {
-                        payload = "{ \"status\": " + response.code() + ", \"body\": \"\" }";
-                    }
-                    it.putExtra(DailiesActivity.EXTRA_JSON, payload);
+                    String payloadStr = (body == null || body.isEmpty())
+                            ? "{ \"data\": [] }"
+                            : body;
+                    it.putExtra(DailiesActivity.EXTRA_JSON, payloadStr);
                     startActivity(it);
                 });
             }
