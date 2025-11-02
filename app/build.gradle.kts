@@ -4,8 +4,6 @@ plugins {
 
 android {
     namespace = "com.example.myapplication"
-
-    // Use an SDK you definitely have installed. If you DO have 36 installed, you can set 36.
     compileSdk = 34
 
     defaultConfig {
@@ -27,18 +25,20 @@ android {
         }
     }
 
-    // Java 11 is fine for your current code
+    // ⬇️ ΑΛΛΑΓΕΣ ΕΔΩ: Java 17 + desugaring
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+        isCoreLibraryDesugaringEnabled = true
     }
 
-    // We removed all ViewBinding usage
     buildFeatures { viewBinding = false }
 }
 
 dependencies {
-    // --- keep only ONE style of dependency notation; use explicit coordinates (simplest) ---
+    // ⬇️ ΑΠΑΡΑΙΤΗΤΟ για java.time σε παλιότερα API levels
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
+
     implementation("androidx.viewpager2:viewpager2:1.1.0")
     implementation("androidx.appcompat:appcompat:1.7.0")
     implementation("com.google.android.material:material:1.12.0")

@@ -1,0 +1,24 @@
+<resources>
+    <!-- Στρογγυλή “pill” -->
+    <style name="ShapeAppearanceOverlay.App.FullPill" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">50%</item>
+    </style>
+
+    <!-- Στυλ για active indicator -->
+    <style name="Widget.App.BottomNav.ActiveIndicator" parent="">
+        <item name="shapeAppearanceOverlay">@style/ShapeAppearanceOverlay.App.FullPill</item>
+
+        <!-- μέγεθος & περιθώρια της φούσκας -->
+        <item name="android:width">56dp</item>
+        <item name="android:height">36dp</item>
+        <item name="android:insetLeft">8dp</item>
+        <item name="android:insetRight">8dp</item>
+        <item name="android:insetTop">6dp</item>
+        <item name="android:insetBottom">6dp</item>
+
+        <!-- ΧΡΩΜΑ ΦΟΥΣΚΑΣ — πιο έντονο -->
+        <item name="backgroundTint">#9B87FF</item>
+        <!-- θες πιο σκούρο; δοκίμασε # -->
+    </style>
+</resources>

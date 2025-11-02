@@ -5,17 +5,49 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
+    <!-- Η λίστα με extra padding κάτω για να μη κρύβεται -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvDays"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:clipToPadding="false"
         android:padding="16dp"
+        android:paddingBottom="100dp"
         app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
-        app:layout_constrainedHeight="true"
-        app:layout_constrainedWidth="true"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintBottom_toTopOf="@+id/bottomBarCard"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"/>
+
+    <!-- Το “pill” bottom bar -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/bottomBarCard"
+        android:layout_width="0dp"
+        android:layout_height="72dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="16dp"
+        app:cardCornerRadius="36dp"
+        app:cardUseCompatPadding="false"
+        app:strokeWidth="0dp"
+        app:cardBackgroundColor="#E2D6FF"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent">
+
+        <com.google.android.material.bottomnavigation.BottomNavigationView
+            android:id="@+id/bottomNav"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@android:color/transparent"
+            app:menu="@menu/menu_bottom_nav"
+
+            app:itemIconTint="@color/selector_bottom_nav_icon"
+            app:itemTextColor="@color/selector_bottom_nav_text"
+            app:labelVisibilityMode="labeled"
+
+            app:itemBackground="@drawable/bottom_nav_item_bg" />
+
+    </com.google.android.material.card.MaterialCardView>
+
 </androidx.constraintlayout.widget.ConstraintLayout>

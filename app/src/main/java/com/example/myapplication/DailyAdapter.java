@@ -4,6 +4,7 @@ import android.graphics.Color;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -11,7 +12,6 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.card.MaterialCardView;
-import com.google.android.material.progressindicator.CircularProgressIndicator;
 import com.google.android.material.progressindicator.LinearProgressIndicator;
 
 import java.util.ArrayList;
@@ -34,78 +34,118 @@ public class DailyAdapter extends RecyclerView.Adapter<DailyAdapter.VH> {
         return new VH(v);
     }
 
-    @Override public void onBindViewHolder(@NonNull VH h, int position) {
+    @Override
+    public void onBindViewHolder(@NonNull VH h, int position) {
         DailiesModels.Day day = items.get(position);
         DailiesModels.Daily d = day.data;
 
-        // Date
+        // Ημερομηνία
         h.tvDate.setText(FormatUtils.prettyDate(day.calendarDate));
+        // Label κύκλου
+        h.tvStepsTitle.setText("👣  Steps Today");
 
-        // Steps ring
-        int goal = Math.max(1, d.stepsGoal);
-        h.stepsIndicator.setMax(goal);
-        h.stepsIndicator.setProgress(Math.max(0, Math.min(goal, d.steps)));
+        // --- Donut progress (το έχεις ήδη υλοποιήσει) ---
+        int goalSteps = Math.max(1, d.stepsGoal);
+        int pct  = Math.round(100f * Math.max(0, d.steps) / goalSteps);
+        h.stepsDonut.setStrokeWidthDp(22f);
+        h.stepsDonut.setTrackColor(0xFFD1D5DB);
+        h.stepsDonut.setProgressColor(0xFF3B82F6);
+        h.stepsDonut.setProgress(pct);
+
         h.tvSteps.setText(String.valueOf(d.steps));
-        h.tvStepsGoal.setText("Steps goal: " + FormatUtils.sep(goal));
+        h.tvStepsGoal.setText("Steps goal: " + FormatUtils.sep(goalSteps));
 
-        // Metric cards
+        // --- Metric cards (ίδια) ---
         bindMetric(h.cardCalories,
-                android.R.drawable.ic_menu_manage, "Calories",
-                d.activeKilocalories + " kcal", "#FFF8E1");
+                R.drawable.ic_calories, "Calories",
+                d.activeKilocalories + " kcal", "#FFFF00");
 
         bindMetric(h.cardDistance,
-                android.R.drawable.ic_menu_mylocation, "Distance",
-                FormatUtils.km(d.distanceInMeters) + " km", "#E1F5FE");
+                R.drawable.ic_distance, "Distance",
+                FormatUtils.km(d.distanceInMeters) + " km", "#B4FFB7");
 
         bindMetric(h.cardAvgHr,
-                android.R.drawable.ic_menu_compass, "Avg Heart Rate",
-                d.averageHeartRateInBeatsPerMinute + " bpm", "#FFEBEE");
+                R.drawable.ic_heart_rate, "Avg Heart Rate",
+                d.averageHeartRateInBeatsPerMinute + " bpm", "#EEC522");
 
         bindMetric(h.cardActiveTime,
-                android.R.drawable.ic_menu_recent_history, "Active Time",
-                FormatUtils.humanDuration(d.activeTimeInSeconds), "#FFE0F7");
+                R.drawable.ic_active_time, "Active Time",
+                FormatUtils.humanDuration(d.activeTimeInSeconds), "#DB7070");
 
-        // Stress
-        h.tvStressValues.setText(d.averageStressLevel + " / " + d.maxStressLevel);
-        h.stressBar.setMax(100);
-        h.stressBar.setProgress(Math.max(0, Math.min(100, d.averageStressLevel)));
+        // --- WATER INTAKE ---
+        final int goalWater = WaterPrefs.getGoal(h.itemView.getContext()); // default 8
+        int count = WaterPrefs.getCountForDate(h.itemView.getContext(), day.calendarDate);
+
+        h.waterBar.setMax(goalWater);
+        h.waterBar.setProgress(Math.min(goalWater, count));
+        h.tvWaterSubtitle.setText(count + " of " + goalWater + " glasses");
+
+        h.btnWaterPlus.setOnClickListener(v -> {
+            WaterPrefs.increment(v.getContext(), day.calendarDate, goalWater);
+            int newCount = WaterPrefs.getCountForDate(v.getContext(), day.calendarDate);
+            h.waterBar.setProgress(Math.min(goalWater, newCount));
+            h.tvWaterSubtitle.setText(newCount + " of " + goalWater + " glasses");
+        });
+
+        // προαιρετικό reset με long press στο card
+        h.cardWater.setOnLongClickListener(v -> {
+            WaterPrefs.reset(v.getContext(), day.calendarDate);
+            h.waterBar.setProgress(0);
+            h.tvWaterSubtitle.setText("0 of " + goalWater + " glasses");
+            return true;
+        });
     }
 
     private void bindMetric(View card, int iconRes, String title, String value, String bgHex) {
         ImageView iv = card.findViewById(R.id.ivIcon);
         TextView tTitle = card.findViewById(R.id.tvTitle);
         TextView tValue = card.findViewById(R.id.tvValue);
-
         iv.setImageResource(iconRes);
         tTitle.setText(title);
         tValue.setText(value);
-
         if (card instanceof MaterialCardView) {
             ((MaterialCardView) card).setCardBackgroundColor(Color.parseColor(bgHex));
+        } else {
+            card.setBackgroundColor(Color.parseColor(bgHex));
         }
     }
 
     @Override public int getItemCount() { return items.size(); }
 
     static class VH extends RecyclerView.ViewHolder {
-        final TextView tvDate, tvSteps, tvStepsGoal, tvStressValues;
+        final TextView tvDate, tvStepsTitle, tvSteps, tvStepsGoal;
         final View cardCalories, cardDistance, cardAvgHr, cardActiveTime;
-        final CircularProgressIndicator stepsIndicator;
-        final LinearProgressIndicator stressBar;
+
+        // Donut custom view
+        final DonutProgressView stepsDonut;
+
+        // Water views
+        final MaterialCardView cardWater;
+        final TextView tvWaterSubtitle;
+        final LinearProgressIndicator waterBar;
+        final ImageButton btnWaterPlus;
 
         VH(@NonNull View itemView) {
             super(itemView);
-            tvDate = itemView.findViewById(R.id.tvDate);
-            tvSteps = itemView.findViewById(R.id.tvSteps);
-            tvStepsGoal = itemView.findViewById(R.id.tvStepsGoal);
-            tvStressValues = itemView.findViewById(R.id.tvStressValues);
-            stepsIndicator = itemView.findViewById(R.id.stepsIndicator);
-            stressBar = itemView.findViewById(R.id.stressBar);
+            tvDate       = itemView.findViewById(R.id.tvDate);
+            tvStepsTitle = itemView.findViewById(R.id.tvStepsTitle);
+            tvSteps      = itemView.findViewById(R.id.tvSteps);
+            tvStepsGoal  = itemView.findViewById(R.id.tvStepsGoal);
 
-            cardCalories = itemView.findViewById(R.id.cardCalories);
-            cardDistance = itemView.findViewById(R.id.cardDistance);
-            cardAvgHr = itemView.findViewById(R.id.cardAvgHr);
+            // donut
+            stepsDonut   = itemView.findViewById(R.id.stepsDonut);
+
+            // metric cards
+            cardCalories   = itemView.findViewById(R.id.cardCalories);
+            cardDistance   = itemView.findViewById(R.id.cardDistance);
+            cardAvgHr      = itemView.findViewById(R.id.cardAvgHr);
             cardActiveTime = itemView.findViewById(R.id.cardActiveTime);
+
+            // water
+            cardWater       = itemView.findViewById(R.id.cardWater);
+            tvWaterSubtitle = itemView.findViewById(R.id.tvWaterSubtitle);
+            waterBar        = itemView.findViewById(R.id.waterBar);
+            btnWaterPlus    = itemView.findViewById(R.id.btnWaterPlus);
         }
     }
 }

@@ -15,7 +15,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
 
-        <!-- Top row: date + tiny icon -->
+        <!-- Top row: date -->
         <LinearLayout
             android:orientation="horizontal"
             android:gravity="center_vertical"
@@ -28,34 +28,32 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"/>
-            <ImageView
-                android:src="@android:drawable/ic_menu_info_details"
-                android:contentDescription="@string/app_name"
-                android:layout_width="24dp"
-                android:layout_height="24dp"/>
         </LinearLayout>
 
-        <!-- Steps ring -->
+        <!-- "Steps Today" -->
+        <TextView
+            android:id="@+id/tvStepsTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="👣  Steps Today"
+            android:textSize="14sp"
+            android:textStyle="bold"/>
+
+        <!-- Steps ring (DonutProgressView) -->
         <FrameLayout
             android:layout_width="match_parent"
-            android:layout_height="220dp"
-            android:layout_marginTop="16dp"
+            android:layout_height="240dp"
+            android:layout_marginTop="10dp"
             android:layout_marginBottom="8dp">
 
-            <com.google.android.material.progressindicator.CircularProgressIndicator
-                android:id="@+id/stepsIndicator"
+            <com.example.myapplication.DonutProgressView
+                android:id="@+id/stepsDonut"
                 android:layout_width="220dp"
                 android:layout_height="220dp"
-                android:layout_gravity="center"
-                app:indicatorSize="16dp"
-                app:trackThickness="16dp"
-                app:trackCornerRadius="8dp"
-                app:indicatorDirectionCircular="clockwise"
-                app:trackColor="@android:color/darker_gray"
-                app:indicatorInset="0dp"
-                app:indicatorColor="?attr/colorPrimary" />
+                android:layout_gravity="center" />
 
-
+            <!-- Κείμενα στο κέντρο -->
             <LinearLayout
                 android:orientation="vertical"
                 android:gravity="center"
@@ -70,14 +68,14 @@
                     android:layout_height="wrap_content"/>
                 <TextView
                     android:id="@+id/tvStepsGoal"
-                    android:textSize="14sp"
+                    android:textSize="12sp"
                     android:textColor="@android:color/darker_gray"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"/>
             </LinearLayout>
         </FrameLayout>
 
-        <!-- Metric grid using simple LinearLayouts (no GridLayout dep) -->
+        <!-- Metric grid -->
         <LinearLayout
             android:orientation="vertical"
             android:layout_width="match_parent"
@@ -129,38 +127,74 @@
             </LinearLayout>
         </LinearLayout>
 
-        <!-- Stress -->
+        <!-- Water Intake -->
         <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardWater"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="10dp"
-            app:cardBackgroundColor="#FFF0F6"
+            app:cardBackgroundColor="#FFE6F7"
             app:cardCornerRadius="16dp">
+
             <LinearLayout
                 android:orientation="vertical"
                 android:padding="14dp"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content">
+
+                <!-- header: icon + title + plus -->
+                <LinearLayout
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
+
+                    <!-- NEW icon -->
+                    <ImageView
+                        android:id="@+id/ivWaterIcon"
+                        android:layout_width="22dp"
+                        android:layout_height="22dp"
+                        android:src="@drawable/ic_water_intake"
+                        android:contentDescription="@string/app_name"/>
+
+                    <TextView
+                        android:id="@+id/tvWaterTitle"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="8dp"
+                        android:text="Water Intake"
+                        android:textStyle="bold"
+                        android:textSize="16sp"/>
+
+                    <ImageButton
+                        android:id="@+id/btnWaterPlus"
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:backgroundTint="@android:color/transparent"
+                        android:contentDescription="Add glass"
+                        android:src="@android:drawable/ic_input_add"/>
+                </LinearLayout>
+
+                <!-- υπότιτλος π.χ. '4 of 8 glasses' -->
                 <TextView
-                    android:text="@string/stress_avg_max"
-                    android:textStyle="bold"
-                    android:textSize="16sp"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"/>
-                <TextView
-                    android:id="@+id/tvStressValues"
+                    android:id="@+id/tvWaterSubtitle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="6dp"/>
+                    android:layout_marginTop="6dp"
+                    android:text="0 of 8 glasses"/>
+
+                <!-- progress -->
                 <com.google.android.material.progressindicator.LinearProgressIndicator
-                    android:id="@+id/stressBar"
+                    android:id="@+id/waterBar"
                     style="@style/Widget.MaterialComponents.LinearProgressIndicator"
                     android:layout_width="match_parent"
-                    android:layout_height="12dp"
-                    android:layout_marginTop="8dp"
+                    android:layout_height="10dp"
+                    android:layout_marginTop="10dp"
                     app:trackCornerRadius="6dp"
-                    app:trackColor="@android:color/darker_gray"
-                    app:indicatorColor="?attr/colorPrimary"/>
+                    app:indicatorColor="#3B82F6"
+                    app:trackColor="#F2D9EB"/>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
