@@ -1,5 +1,6 @@
 package com.example.myapplication;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.Toast;
@@ -25,21 +26,31 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
+import okhttp3.Call;
+import okhttp3.Callback;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
+
 public class DailiesActivity extends AppCompatActivity {
     public static final String EXTRA_JSON = "extra_json";
+    private static final String TAG = "Dailies";
+    private static final String USER_ID = "3cdf364a-da5b-453f-b0e7-6983f2f1e310";
+
+    private RecyclerView rv;
+    private DailyAdapter adapter;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.fragment_dailies_activity);
 
-        // --- Bottom bar setup ---
+        // --- Bottom bar setup (όπως είχες) ---
         BottomNavigationView bottom = findViewById(R.id.bottomNav);
         if (bottom != null) {
             bottom.setSelectedItemId(R.id.nav_home);
             bottom.setOnItemSelectedListener(item -> {
                 int id = item.getItemId();
-
                 if (id == R.id.nav_insights) {
                     Toast.makeText(this, "Insights", Toast.LENGTH_SHORT).show();
                     return true;
@@ -49,14 +60,14 @@ public class DailiesActivity extends AppCompatActivity {
                     Toast.makeText(this, "Notifications", Toast.LENGTH_SHORT).show();
                     return true;
                 } else if (id == R.id.nav_profile) {
-                    Toast.makeText(this, "Profile", Toast.LENGTH_SHORT).show();
+                    startActivity(new Intent(this, ProfileActivity.class));
                     return true;
                 }
                 return false;
             });
         }
 
-        // Προσαρμογή για gesture navigation ώστε το pill να μη πέφτει κάτω από το system bar
+        // insets για το pill
         MaterialCardView barCard = findViewById(R.id.bottomBarCard);
         if (barCard != null) {
             ViewCompat.setOnApplyWindowInsetsListener(barCard, (v, insets) -> {
@@ -67,23 +78,67 @@ public class DailiesActivity extends AppCompatActivity {
         }
         // --- /Bottom bar setup ---
 
-        RecyclerView rv = findViewById(R.id.rvDays);
-        DailyAdapter adapter = new DailyAdapter();
+        rv = findViewById(R.id.rvDays);
+        adapter = new DailyAdapter();
         rv.setAdapter(adapter);
 
+        // Αν ήρθαμε από Goals/Profile χωρίς payload → κάνε fetch μόνος σου
         String payload = getIntent().getStringExtra(EXTRA_JSON);
         if (payload == null || payload.trim().isEmpty()) {
-            Toast.makeText(this, "No data", Toast.LENGTH_SHORT).show();
-            adapter.submit(new ArrayList<>());
-            return;
+            fetchDailies();
+        } else {
+            adapter.submit(parseDays(payload));
         }
-        adapter.submit(parseDays(payload));
+    }
+
+    private void fetchDailies() {
+        OkHttpClient client = new OkHttpClient.Builder()
+                .addInterceptor(chain -> {
+                    Request orig = chain.request();
+                    String cookie = SecureCookie.get(getApplicationContext());
+                    Request req = (cookie != null && !cookie.isEmpty())
+                            ? orig.newBuilder().addHeader("Cookie", cookie).build()
+                            : orig;
+                    Response res = chain.proceed(req);
+
+                    if (res.code() == 401 || res.code() == 403) {
+                        runOnUiThread(() -> {
+                            Toast.makeText(this, "Session expired. Please reconnect.", Toast.LENGTH_SHORT).show();
+                            startActivity(new Intent(this, GarminLinkActivity.class));
+                        });
+                    }
+                    return res;
+                })
+                .build();
+
+        String url = "https://garmin-ucy.3ahealth.com/garmin/dailies?garminUserId=" + USER_ID;
+        Request request = new Request.Builder().url(url).get().build();
+
+        client.newCall(request).enqueue(new Callback() {
+            @Override public void onFailure(Call call, java.io.IOException e) {
+                Log.e(TAG, "Network error", e);
+                runOnUiThread(() ->
+                        Toast.makeText(DailiesActivity.this, "Network error", Toast.LENGTH_SHORT).show()
+                );
+            }
+
+            @Override public void onResponse(Call call, Response response) throws java.io.IOException {
+                String body = response.body() != null ? response.body().string() : "";
+                runOnUiThread(() -> {
+                    if (body == null || body.isEmpty()) {
+                        Toast.makeText(DailiesActivity.this, "No data", Toast.LENGTH_SHORT).show();
+                        adapter.submit(new ArrayList<>());
+                    } else {
+                        adapter.submit(parseDays(body));
+                    }
+                });
+            }
+        });
     }
 
     private List<DailiesModels.Day> parseDays(String payload) {
         List<DailiesModels.Day> out = new ArrayList<>();
         try {
-            // υπολόγισε "σήμερα" στη ζώνη του κινητού
             LocalDate today = LocalDate.now(ZoneId.systemDefault());
             DateTimeFormatter ISO = DateTimeFormatter.ISO_LOCAL_DATE;
 
@@ -98,10 +153,8 @@ public class DailiesActivity extends AppCompatActivity {
                 boolean isToday = false;
 
                 if (calendarDate != null && !calendarDate.isEmpty()) {
-                    // Σύγκριση με το πεδίο calendarDate (μορφή YYYY-MM-DD)
                     isToday = LocalDate.parse(calendarDate, ISO).equals(today);
                 } else {
-                    // Fallback: από startTimeInSeconds + startTimeOffsetInSeconds
                     JSONObject dTmp = dayObj.optJSONObject("data");
                     if (dTmp != null) {
                         long start = dTmp.optLong("startTimeInSeconds", -1L);
@@ -110,9 +163,7 @@ public class DailiesActivity extends AppCompatActivity {
                             Instant instant = Instant.ofEpochSecond(start).minusSeconds(offset);
                             LocalDate ld = LocalDateTime.ofInstant(instant, ZoneId.systemDefault()).toLocalDate();
                             isToday = ld.equals(today);
-                            if (calendarDate == null) {
-                                calendarDate = ld.format(ISO);
-                            }
+                            if (calendarDate == null) calendarDate = ld.format(ISO);
                         }
                     }
                 }
@@ -125,7 +176,8 @@ public class DailiesActivity extends AppCompatActivity {
                 DailiesModels.Daily d = new DailiesModels.Daily();
                 d.calendarDate = dObj.optString("calendarDate", calendarDate);
                 d.steps = dObj.optInt("steps");
-                d.stepsGoal = dObj.optInt("stepsGoal", 10000);
+                int apiGoal = dObj.optInt("stepsGoal", 0);
+                d.stepsGoal = (apiGoal > 0) ? apiGoal : UserPrefs.getGoalSteps(this);
                 d.activeKilocalories = dObj.optInt("activeKilocalories");
                 d.distanceInMeters = dObj.optLong("distanceInMeters");
                 d.averageHeartRateInBeatsPerMinute = dObj.optInt("averageHeartRateInBeatsPerMinute");
@@ -136,11 +188,10 @@ public class DailiesActivity extends AppCompatActivity {
                 DailiesModels.Day day = new DailiesModels.Day();
                 day.calendarDate = (calendarDate != null) ? calendarDate : d.calendarDate;
                 day.data = d;
-
                 out.add(day);
             }
         } catch (JSONException e) {
-            Log.e("DailiesActivity", "JSON parse error", e);
+            Log.e(TAG, "JSON parse error", e);
         }
         return out;
     }
