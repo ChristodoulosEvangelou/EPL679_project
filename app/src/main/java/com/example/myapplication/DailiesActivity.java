@@ -1,6 +1,7 @@
 package com.example.myapplication;
 
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.Toast;
@@ -18,6 +19,10 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -52,7 +57,7 @@ public class DailiesActivity extends AppCompatActivity {
             bottom.setOnItemSelectedListener(item -> {
                 int id = item.getItemId();
                 if (id == R.id.nav_insights) {
-                    Toast.makeText(this, "Insights", Toast.LENGTH_SHORT).show();
+                    startActivity(new Intent(this, InsightsActivity.class));
                     return true;
                 } else if (id == R.id.nav_home) {
                     return true; // ήδη εδώ
@@ -83,13 +88,33 @@ public class DailiesActivity extends AppCompatActivity {
         rv.setAdapter(adapter);
 
         // Αν ήρθαμε από Goals/Profile χωρίς payload → κάνε fetch μόνος σου
-        String payload = getIntent().getStringExtra(EXTRA_JSON);
-        if (payload == null || payload.trim().isEmpty()) {
+        Uri dataUri = getIntent().getData();
+        if (dataUri == null) {
             fetchDailies();
         } else {
-            adapter.submit(parseDays(payload));
+            try (InputStream is = getContentResolver().openInputStream(dataUri);
+                 BufferedReader br = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
+                StringBuilder sb = new StringBuilder();
+                String line;
+                while ((line = br.readLine()) != null) sb.append(line);
+                adapter.submit(parseDays(sb.toString()));
+            } catch (Exception e) {
+                String TsAG="";
+                Log.e(TsAG, "Failed to read payload file", e);
+                Toast.makeText(this, "Error reading data", Toast.LENGTH_SHORT).show();
+                fetchDailies();
+            }
         }
     }
+
+
+    @Override protected void onResume() {
+        super.onResume();
+        if (rv != null && rv.getAdapter() != null) {
+            rv.getAdapter().notifyDataSetChanged();
+        }
+    }
+
 
     private void fetchDailies() {
         OkHttpClient client = new OkHttpClient.Builder()

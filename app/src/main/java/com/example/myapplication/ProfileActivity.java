@@ -64,7 +64,7 @@ public class ProfileActivity extends AppCompatActivity {
         bottom.setOnItemSelectedListener(item -> {
             int id = item.getItemId();
             if (id == R.id.nav_insights) {
-                Toast.makeText(this, "Insights", Toast.LENGTH_SHORT).show();
+                startActivity(new Intent(this, InsightsActivity.class));
                 return true;
             } else if (id == R.id.nav_home) {
                 startActivity(new Intent(this, DailiesActivity.class)); finish(); return true;

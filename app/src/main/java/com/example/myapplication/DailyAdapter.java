@@ -1,5 +1,6 @@
 package com.example.myapplication;
 
+import android.content.Context;
 import android.graphics.Color;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -33,7 +34,7 @@ public class DailyAdapter extends RecyclerView.Adapter<DailyAdapter.VH> {
                 .inflate(R.layout.item_daily_summary, parent, false);
         return new VH(v);
     }
-
+    /*
     @Override
     public void onBindViewHolder(@NonNull VH h, int position) {
         DailiesModels.Day day = items.get(position);
@@ -94,7 +95,74 @@ public class DailyAdapter extends RecyclerView.Adapter<DailyAdapter.VH> {
             h.tvWaterSubtitle.setText("0 of " + goalWater + " glasses");
             return true;
         });
+    }*/
+    @Override
+    public void onBindViewHolder(@NonNull VH h, int position) {
+        DailiesModels.Day day = items.get(position);
+        DailiesModels.Daily d = day.data;
+
+        // Ημερομηνία + τίτλος
+        h.tvDate.setText(FormatUtils.prettyDate(day.calendarDate));
+        h.tvStepsTitle.setText("👣  Steps Today");
+
+        // --- Donut progress (κρατάμε όλες τις ρυθμίσεις που είχες) ---
+        //int goalSteps = Math.max(1, d.stepsGoal);
+        Context ctx = h.itemView.getContext();
+        int goalSteps = Math.max(1, UserPrefs.getGoalSteps(ctx));
+
+        int pct = Math.round(100f * Math.max(0, d.steps) / goalSteps);
+        h.stepsDonut.setStrokeWidthDp(22f);
+        h.stepsDonut.setTrackColor(0xFFD1D5DB);   // γκρι υπόλοιπο
+        h.stepsDonut.setProgressColor(0xFF3B82F6); // μπλε progress
+        h.stepsDonut.setProgress(pct);
+
+        h.tvSteps.setText(String.valueOf(d.steps));
+        h.tvStepsGoal.setText("Steps goal: " + FormatUtils.sep(goalSteps));
+
+        // --- Metric cards ---
+        bindMetric(h.cardCalories,
+                R.drawable.ic_calories, "Calories",
+                d.activeKilocalories + " kcal", "#FFFF00");
+
+        bindMetric(h.cardDistance,
+                R.drawable.ic_distance, "Distance",
+                FormatUtils.km(d.distanceInMeters) + " km", "#B4FFB7");
+
+        bindMetric(h.cardAvgHr,
+                R.drawable.ic_heart_rate, "Avg Heart Rate",
+                d.averageHeartRateInBeatsPerMinute + " bpm", "#EEC522");
+
+        bindMetric(h.cardActiveTime,
+                R.drawable.ic_active_time, "Active Time",
+                FormatUtils.humanDuration(d.activeTimeInSeconds), "#DB7070");
+
+        // --- WATER INTAKE ---
+        final int goalWater = WaterPrefs.getGoal(h.itemView.getContext()); // default 8
+        // με βάση την ημερομηνία του Day (YYYY-MM-DD)
+        String dateKey = day.calendarDate != null ? day.calendarDate
+                : java.time.LocalDate.now().toString();
+        int count = WaterPrefs.getCountForDate(h.itemView.getContext(), dateKey);
+
+        h.waterBar.setMax(Math.max(1, goalWater));
+        h.waterBar.setProgress(Math.min(goalWater, count));
+        h.tvWaterSubtitle.setText(count + " of " + goalWater + " glasses");
+
+        h.btnWaterPlus.setOnClickListener(v -> {
+            WaterPrefs.increment(v.getContext(), dateKey, goalWater);
+            int newCount = WaterPrefs.getCountForDate(v.getContext(), dateKey);
+            h.waterBar.setProgress(Math.min(goalWater, newCount));
+            h.tvWaterSubtitle.setText(newCount + " of " + goalWater + " glasses");
+        });
+
+        // προαιρετικό reset με long-press στο card
+        h.cardWater.setOnLongClickListener(v -> {
+            WaterPrefs.reset(v.getContext(), dateKey);
+            h.waterBar.setProgress(0);
+            h.tvWaterSubtitle.setText("0 of " + goalWater + " glasses");
+            return true;
+        });
     }
+
 
     private void bindMetric(View card, int iconRes, String title, String value, String bgHex) {
         ImageView iv = card.findViewById(R.id.ivIcon);

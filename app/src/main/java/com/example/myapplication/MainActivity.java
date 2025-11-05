@@ -1,6 +1,7 @@
 package com.example.myapplication;
 // MainActivity.java
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.Button;
@@ -8,8 +9,12 @@ import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.FileProvider;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 import okhttp3.Call;
 import okhttp3.Callback;
@@ -92,17 +97,40 @@ public class MainActivity extends AppCompatActivity {
                 });
             }
             @Override public void onResponse(Call call, Response response) throws IOException {
-                String body = response.body() != null ? response.body().string() : "";
+                final boolean ok = response.isSuccessful();
+                final String body = response.body() != null ? response.body().string() : "";
 
                 runOnUiThread(() -> {
-                    Intent it = new Intent(MainActivity.this, DailiesActivity.class);
-                    String payloadStr = (body == null || body.isEmpty())
-                            ? "{ \"data\": [] }"
-                            : body;
-                    it.putExtra(DailiesActivity.EXTRA_JSON, payloadStr);
-                    startActivity(it);
+                    if (!ok) {
+                        Toast.makeText(MainActivity.this, "Request failed: " + response.code(), Toast.LENGTH_SHORT).show();
+                        // ΜΗΝ ανοίγεις activity με ολόκληρο το body όταν αποτυγχάνει
+                        return;
+                    }
+
+                    try {
+                        File f = File.createTempFile("garmin_dailies_", ".json", getCacheDir());
+                        try (FileOutputStream fos = new FileOutputStream(f)) {
+                            fos.write((body == null || body.isEmpty() ? "{ \"data\": [] }" : body).getBytes(StandardCharsets.UTF_8));
+                        }
+
+                        Uri uri = FileProvider.getUriForFile(
+                                MainActivity.this,
+                                getPackageName() + ".provider",
+                                f
+                        );
+
+                        Intent it = new Intent(MainActivity.this, DailiesActivity.class)
+                                .setData(uri)
+                                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+
+                        startActivity(it);
+                    } catch (Exception e) {
+                        Log.e(TAG, "Failed to pass payload via file", e);
+                        Toast.makeText(MainActivity.this, "Internal error saving response", Toast.LENGTH_SHORT).show();
+                    }
                 });
             }
+
         });
     }
 }

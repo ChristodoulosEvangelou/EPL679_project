@@ -76,6 +76,10 @@ public class GoalsActivity extends AppCompatActivity {
             UserPrefs.setGoalDistanceKm(this, dist);
             UserPrefs.setGoalWater(this, water);
 
+            //11.4.2025 add
+            // κρατάμε και σε WaterPrefs για συνέπεια (αν το χρησιμοποιείς αλλού)
+            WaterPrefs.setGoal(this, water);
+
             Toast.makeText(this, "Goals saved", Toast.LENGTH_SHORT).show();
         });
 
@@ -86,7 +90,7 @@ public class GoalsActivity extends AppCompatActivity {
             int id = item.getItemId();
 
             if (id == R.id.nav_insights) {
-                Toast.makeText(this, "Insights", Toast.LENGTH_SHORT).show();
+                startActivity(new Intent(this, InsightsActivity.class));
                 return true;
             } else if (id == R.id.nav_home) {
                 startActivity(new Intent(this, DailiesActivity.class)); finish(); return true;

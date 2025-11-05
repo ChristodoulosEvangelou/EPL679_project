@@ -38,7 +38,7 @@ android {
 dependencies {
     // ⬇️ ΑΠΑΡΑΙΤΗΤΟ για java.time σε παλιότερα API levels
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
-
+    implementation("com.github.PhilJay:MPAndroidChart:3.1.0")
     implementation("androidx.viewpager2:viewpager2:1.1.0")
     implementation("androidx.appcompat:appcompat:1.7.0")
     implementation("com.google.android.material:material:1.12.0")
