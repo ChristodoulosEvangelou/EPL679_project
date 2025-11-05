@@ -3,6 +3,7 @@ package com.example.myapplication;
 import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
@@ -28,8 +29,18 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
+
+import okhttp3.Call;
+import okhttp3.Callback;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
 
 public class InsightsActivity extends AppCompatActivity {
+
+    private static final String TAG = "Insights";
+    private static final String USER_ID = "3cdf364a-da5b-453f-b0e7-6983f2f1e310"; // δικό σου
 
     private BarChart barChart;
     private ChipGroup chips;
@@ -54,16 +65,15 @@ public class InsightsActivity extends AppCompatActivity {
             return false;
         });
 
-        // Tabs (μόνο Steps ενεργό προς το παρόν)
+        // Tabs (προς το παρόν μόνο Steps)
         MaterialButtonToggleGroup toggle = findViewById(R.id.toggleTabs);
         toggle.addOnButtonCheckedListener((g, id, checked) -> {
             if (!checked) return;
             if (id == R.id.btnTabSteps) {
-                // ok
                 renderForCurrentRange();
             } else {
                 Toast.makeText(this, "Coming soon", Toast.LENGTH_SHORT).show();
-                g.check(R.id.btnTabSteps); // μείνε στα Steps
+                g.check(R.id.btnTabSteps);
             }
         });
 
@@ -72,24 +82,16 @@ public class InsightsActivity extends AppCompatActivity {
         tvTotal = findViewById(R.id.tvTotal);
         chips = findViewById(R.id.chipsRange);
 
-        // default επιλεγμένο: 30 days
+        // Προεπιλογή: 30 μέρες
         ((Chip) findViewById(R.id.chip30d)).setChecked(true);
 
-        // chart styling
         setupChart();
 
-        // φέρε δεδομένα πολλών ημερών
-        // Αν ήδη έχεις ένα JSON μεγάλο από το API, κάλεσε parseMany(payload).
-        // Για αρχή, θα ξαναχρησιμοποιήσουμε τα data που έχεις ήδη στο cache ή
-        // μπορείς να τα περάσεις από το Main/Dailies. Εδώ δείχνω stub που
-        // διαβάζει από ένα singleton/last payload αν έχεις. Αλλιώς βάλε δικό σου fetch.
-        fetchOrReuseData();
-
-        // listeners στα chips
+        // Listeners στα chips
         chips.setOnCheckedStateChangeListener((group, checkedIds) -> renderForCurrentRange());
 
-        // αρχικό render
-        renderForCurrentRange();
+        // Φέρε πραγματικά δεδομένα (πολλές μέρες)
+        fetchMany();
     }
 
     private void setupChart() {
@@ -113,56 +115,109 @@ public class InsightsActivity extends AppCompatActivity {
         left.setTextColor(Color.DKGRAY);
         barChart.getAxisRight().setEnabled(false);
 
-        // y-axis max = goal steps
+        // Αρχικό max (θα αναπροσαρμοστεί στο render)
         int goal = UserPrefs.getGoalSteps(this);
-        left.setAxisMaximum(goal);
+        left.setAxisMaximum(Math.max(goal, 10000));
         left.setAxisMinimum(0f);
     }
 
-    private void fetchOrReuseData() {
-        // Αν ήδη η Main/Dailies αποθηκεύει το τελευταίο payload κάπου (π.χ. SharedPreferences/file),
-        // το διάβασε εδώ. Για demo: θα προσπαθήσω να ξαναχρησιμοποιήσω από DailiesActivity
-        // εφόσον είχε φέρει πολλές ημέρες. Διαφορετικά, άφησε την allDays κενή.
-        // TIP: Ιδανικά κάνε ξεχωριστό API call που γυρνάει N ημέρες και κάλεσε parseMany(json).
+    /** Τραβά πολλές μέρες από το API (ίδιο endpoint με DailiesActivity, χωρίς φίλτρο “σήμερα”). */
+    private void fetchMany() {
+        OkHttpClient client = new OkHttpClient.Builder()
+                .addInterceptor(chain -> {
+                    Request orig = chain.request();
+                    String cookie = SecureCookie.get(getApplicationContext());
+                    Request req = (cookie != null && !cookie.isEmpty())
+                            ? orig.newBuilder().addHeader("Cookie", cookie).build()
+                            : orig;
+                    Response res = chain.proceed(req);
+
+                    if (res.code() == 401 || res.code() == 403) {
+                        runOnUiThread(() -> {
+                            Toast.makeText(this, "Session expired. Please reconnect.", Toast.LENGTH_SHORT).show();
+                            startActivity(new Intent(this, GarminLinkActivity.class));
+                        });
+                    }
+                    return res;
+                })
+                .build();
+
+        String url = "https://garmin-ucy.3ahealth.com/garmin/dailies?garminUserId=" + USER_ID;
+        Request request = new Request.Builder().url(url).get().build();
+
+        client.newCall(request).enqueue(new Callback() {
+            @Override public void onFailure(Call call, java.io.IOException e) {
+                Log.e(TAG, "Network error", e);
+                runOnUiThread(() ->
+                        Toast.makeText(InsightsActivity.this, "Network error", Toast.LENGTH_SHORT).show()
+                );
+            }
+
+            @Override public void onResponse(Call call, Response response) throws java.io.IOException {
+                final String body = response.body() != null ? response.body().string() : "";
+                runOnUiThread(() -> {
+                    if (body == null || body.isEmpty()) {
+                        Toast.makeText(InsightsActivity.this, "No data", Toast.LENGTH_SHORT).show();
+                        allDays = new ArrayList<>();
+                        renderForCurrentRange();
+                    } else {
+                        parseMany(body);   // ΓΕΜΙΖΕΙ allDays με ΟΛΕΣ τις μέρες
+                        renderForCurrentRange();
+                    }
+                });
+            }
+        });
     }
 
-    /** Μπορείς να καλέσεις αυτό με το JSON του /dailies που επιστρέφει πολλές μέρες */
+    /** Παίρνει ΟΛΕΣ τις μέρες από το JSON του /dailies (χωρίς φίλτρο “σήμερα”). */
     private void parseMany(String payload) {
         try {
             List<DailiesModels.Day> tmp = new ArrayList<>();
             JSONObject root = new JSONObject(payload);
             JSONArray arr = root.optJSONArray("data");
-            if (arr == null) return;
+            if (arr == null) { allDays = new ArrayList<>(); return; }
+
             for (int i = 0; i < arr.length(); i++) {
                 JSONObject dayObj = arr.getJSONObject(i);
                 JSONObject dObj = dayObj.optJSONObject("data");
                 if (dObj == null) continue;
 
                 DailiesModels.Daily d = new DailiesModels.Daily();
-                d.calendarDate = dayObj.optString("calendarDate", dObj.optString("calendarDate", null));
+                // προτίμησε το top-level calendarDate αν υπάρχει
+                String cal = dayObj.optString("calendarDate", dObj.optString("calendarDate", null));
+                d.calendarDate = cal;
                 d.steps = dObj.optInt("steps");
-                //tmp.add(new DailiesModels.Day(d.calendarDate, d));
+                // (αν θελήσεις κι άλλα πεδία, πρόσθεσέ τα εδώ)
+
                 DailiesModels.Day day = new DailiesModels.Day();
-                day.calendarDate = d.calendarDate;  // ή ό,τι ημερομηνία κρατάς
+                day.calendarDate = d.calendarDate;
                 day.data = d;
-                tmp.add(day);
+                // αγνόησε records χωρίς ημερομηνία
+                if (day.calendarDate != null && !day.calendarDate.isEmpty()) {
+                    tmp.add(day);
+                }
             }
             allDays = tmp;
-        } catch (Exception ignore) {}
+        } catch (Exception e) {
+            Log.e(TAG, "parseMany error", e);
+            allDays = new ArrayList<>();
+        }
     }
 
     private void renderForCurrentRange() {
         if (allDays == null) allDays = new ArrayList<>();
-        // sort by date asc
-        Collections.sort(allDays, (a, b) ->
-                LocalDate.parse(a.calendarDate, ISO).compareTo(LocalDate.parse(b.calendarDate, ISO)));
+
+        // sort by date asc (ασφαλής parse)
+        try {
+            Collections.sort(allDays, (a, b) ->
+                    LocalDate.parse(a.calendarDate, ISO).compareTo(LocalDate.parse(b.calendarDate, ISO)));
+        } catch (Exception ignore) { /* αν χαλάσει parsing, αφήνουμε την τρέχουσα σειρά */ }
 
         // εύρος
         int days = 30; // default
-        if (findViewById(R.id.chip7d).isPressed() || ((Chip)findViewById(R.id.chip7d)).isChecked()) days = 7;
-        if (((Chip)findViewById(R.id.chip30d)).isChecked()) days = 30;
-        if (((Chip)findViewById(R.id.chip6m)).isChecked()) days = 180;
-        if (((Chip)findViewById(R.id.chip1y)).isChecked()) days = 365;
+        if (((Chip)findViewById(R.id.chip7d)).isChecked())    days = 7;
+        else if (((Chip)findViewById(R.id.chip6m)).isChecked()) days = 180;
+        else if (((Chip)findViewById(R.id.chip1y)).isChecked()) days = 365;
 
         LocalDate to = LocalDate.now();
         LocalDate from = to.minusDays(days - 1);
@@ -170,31 +225,39 @@ public class InsightsActivity extends AppCompatActivity {
         // φιλτράρισμα
         List<DailiesModels.Day> window = new ArrayList<>();
         for (DailiesModels.Day d : allDays) {
-            LocalDate ld = LocalDate.parse(d.calendarDate, ISO);
-            if (!ld.isBefore(from) && !ld.isAfter(to)) window.add(d);
+            try {
+                LocalDate ld = LocalDate.parse(d.calendarDate, ISO);
+                if (!ld.isBefore(from) && !ld.isAfter(to)) window.add(d);
+            } catch (Exception ignore) {}
         }
 
-        // entries (αν δεν έχεις δεδομένα, βάλε zeros για να φαίνεται ο άξονας)
+        // Entries
         List<BarEntry> entries = new ArrayList<>();
         int idx = 0;
         int total = 0;
+        int maxInWindow = 0;
         for (DailiesModels.Day d : window) {
-            entries.add(new BarEntry(idx++, d.data.steps));
-            total += d.data.steps;
+            int s = d.data.steps;
+            entries.add(new BarEntry(idx++, s));
+            total += s;
+            if (s > maxInWindow) maxInWindow = s;
         }
         if (entries.isEmpty()) {
-            for (int i = 0; i < Math.min(days, 14); i++) entries.add(new BarEntry(i, 0));
+            // βάλ’ το πολύ 14 κολώνες 0 για να μη δείχνει κενό
+            int zeros = Math.min(days, 14);
+            for (int i = 0; i < zeros; i++) entries.add(new BarEntry(i, 0));
         }
 
         // KPIs
         int avg = window.isEmpty() ? 0 : Math.round(total * 1f / window.size());
-        tvAvg.setText("Average\n" + FormatUtils.sep(avg));
-        tvTotal.setText("Total\n" + FormatUtils.sep(total));
+        tvAvg.setText("Average\n" + String.format(Locale.getDefault(), "%,d", avg));
+        tvTotal.setText("Total\n" + String.format(Locale.getDefault(), "%,d", total));
 
-        // y-axis = goal
+        // y-axis = max(goal, maxInWindow) * 1.1
         int goal = UserPrefs.getGoalSteps(this);
+        float yMax = (float) Math.max(goal, maxInWindow);
         YAxis left = barChart.getAxisLeft();
-        left.setAxisMaximum(Math.max(goal, Math.max(avg, (window.isEmpty() ? 0 : Collections.max(window, (a,b)->a.data.steps-b.data.steps).data.steps))) * 1.1f);
+        left.setAxisMaximum(yMax > 0 ? yMax * 1.1f : Math.max(goal, 10000));
         left.setAxisMinimum(0f);
 
         BarDataSet set = new BarDataSet(entries, "");
