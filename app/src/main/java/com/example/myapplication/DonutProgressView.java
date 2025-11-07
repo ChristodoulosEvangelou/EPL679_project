@@ -16,7 +16,7 @@ public class DonutProgressView extends View {
     private final RectF oval = new RectF();
 
     private int progress = 0;        // 0..100
-    private float strokeWidth = 22f; // dp
+    private float strokeWidth = 22f; // dp ηταν 22 πριν
     private int trackColor = 0xFFD1D5DB;    // γκρι
     private int progressColor = 0xFF3B82F6; // μπλε
 

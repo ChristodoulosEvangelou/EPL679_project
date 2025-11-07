@@ -8,4 +8,25 @@
     <color name="seg_purple_500">#6C63FF</color>
     <color name="seg_purple_100">#EEE6FF</color>
 
+
+
+    <color name="bg_app">#F6F8FB</color>
+    <color name="surface">#FFFFFF</color>
+    <color name="primary">#2FD4A8</color>
+    <color name="secondary">#2B8AE3</color>
+    <color name="text_primary">#111827</color>
+    <color name="text_secondary">#6B7280</color>
+    <color name="border">#E5E7EB</color>
+
+    <!-- semantic / chips -->
+    <color name="chip_blue_bg">#E8F1FE</color>
+    <color name="chip_blue_fg">#2B8AE3</color>
+    <color name="chip_green_bg">#E8F9F3</color>
+    <color name="chip_green_fg">#2FD4A8</color>
+    <color name="chip_yellow_bg">#FFF6E6</color>
+    <color name="chip_yellow_fg">#F59E0B</color>
+    <color name="chip_red_bg">#FDECEC</color>
+    <color name="chip_red_fg">#EF4444</color>
+
+
 </resources>

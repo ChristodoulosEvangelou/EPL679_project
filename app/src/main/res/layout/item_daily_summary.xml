@@ -87,20 +87,21 @@
                 android:layout_height="wrap_content">
 
                 <include
-                    android:id="@+id/cardCalories"
-                    layout="@layout/view_metric_card"
-                    android:layout_width="0dp"
-                    android:layout_height="100dp"
-                    android:layout_weight="1"
-                    android:layout_marginEnd="8dp"/>
-
-                <include
                     android:id="@+id/cardDistance"
                     layout="@layout/view_metric_card"
                     android:layout_width="0dp"
                     android:layout_height="100dp"
                     android:layout_weight="1"
+                    android:layout_marginEnd="8dp" />
+
+                <include
+                    android:id="@+id/cardCalories"
+                    layout="@layout/view_metric_card"
+                    android:layout_width="0dp"
+                    android:layout_height="100dp"
+                    android:layout_weight="1"
                     android:layout_marginStart="8dp"/>
+
             </LinearLayout>
 
             <LinearLayout
@@ -128,34 +129,37 @@
         </LinearLayout>
 
         <!-- Water Intake -->
+        <!-- Card: Water Intake (glasses) -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/cardWater"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            app:cardBackgroundColor="#FFE6F7"
-            app:cardCornerRadius="16dp">
+            android:layout_marginBottom="12dp"
+            app:cardBackgroundColor="#FFEAF6"
+            app:cardCornerRadius="14dp"
+            app:strokeColor="#E8D7EE"
+            android:layout_marginTop="12dp"
+            app:strokeWidth="1dp">
 
             <LinearLayout
-                android:orientation="vertical"
-                android:padding="14dp"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content">
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
 
-                <!-- header: icon + title + plus -->
+                android:padding="14dp">
+
+                <!-- header row -->
                 <LinearLayout
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content">
+                    android:layout_height="wrap_content"
+                    android:minHeight="48dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
 
-                    <!-- NEW icon -->
                     <ImageView
-                        android:id="@+id/ivWaterIcon"
                         android:layout_width="22dp"
                         android:layout_height="22dp"
-                        android:src="@drawable/ic_water_intake"
-                        android:contentDescription="@string/app_name"/>
+                        android:src="@drawable/waterdrop"/>
 
                     <TextView
                         android:id="@+id/tvWaterTitle"
@@ -164,39 +168,47 @@
                         android:layout_weight="1"
                         android:layout_marginStart="8dp"
                         android:text="Water Intake"
-                        android:textStyle="bold"
-                        android:textSize="16sp"/>
+                        android:textStyle="bold"/>
 
-                    <ImageButton
-                        android:id="@+id/btnWaterPlus"
-                        android:layout_width="32dp"
-                        android:layout_height="32dp"
-                        android:background="?attr/selectableItemBackgroundBorderless"
-                        android:backgroundTint="@android:color/transparent"
-                        android:contentDescription="Add glass"
-                        android:src="@android:drawable/ic_input_add"/>
+                    <!-- Πράσινος κύκλος + απόλυτα κεντραρισμένο -->
+                    <FrameLayout
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
+                        android:layout_marginStart="8dp"
+                        android:background="@drawable/bg_green_circle"
+                        android:foreground="?attr/selectableItemBackgroundBorderless">
+
+                        <ImageView
+                            android:id="@+id/btnWaterPlus"
+                            android:layout_width="22dp"
+                            android:layout_height="22dp"
+                            android:layout_gravity="center"
+                            android:src="@drawable/ic_add_center"
+                            />
+                    </FrameLayout>
                 </LinearLayout>
 
-                <!-- υπότιτλος π.χ. '4 of 8 glasses' -->
+
+                <!-- subtitle -->
                 <TextView
                     android:id="@+id/tvWaterSubtitle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="6dp"
-                    android:text="0 of 8 glasses"/>
+                    android:text="0 of 10 glasses"
+                    android:textColor="#444"/>
 
-                <!-- progress -->
-                <com.google.android.material.progressindicator.LinearProgressIndicator
-                    android:id="@+id/waterBar"
-                    style="@style/Widget.MaterialComponents.LinearProgressIndicator"
+                <!-- κουκίδες -->
+                <LinearLayout
+                    android:id="@+id/llWaterDots"
                     android:layout_width="match_parent"
-                    android:layout_height="10dp"
-                    android:layout_marginTop="10dp"
-                    app:trackCornerRadius="6dp"
-                    app:indicatorColor="#3B82F6"
-                    app:trackColor="#F2D9EB"/>
+                    android:layout_height="20dp"
+                    android:layout_marginTop="8dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"/>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
+
 
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>
