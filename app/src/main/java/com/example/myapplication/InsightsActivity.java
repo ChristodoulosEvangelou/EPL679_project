@@ -36,18 +36,27 @@ import okhttp3.Callback;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
+import android.view.View;
 
 public class InsightsActivity extends AppCompatActivity {
 
     private static final String TAG = "Insights";
     private static final String USER_ID = "3cdf364a-da5b-453f-b0e7-6983f2f1e310"; // δικό σου
+    private static final DateTimeFormatter ISO = DateTimeFormatter.ISO_LOCAL_DATE;
+
+    private enum Mode { STEPS, VITALS, CALORIES }
+    private enum VitalMetric {
+        AVG_HR, REST_HR, MAX_HR, MIN_HR, STRESS_AVG
+    }
+
+    private Mode currentMode = Mode.STEPS;
+    private VitalMetric vitalMetric = VitalMetric.AVG_HR;
 
     private BarChart barChart;
-    private ChipGroup chips;
+    private ChipGroup chipsRange, chipsVitals;
     private androidx.appcompat.widget.AppCompatTextView tvAvg, tvTotal;
 
     private List<DailiesModels.Day> allDays = new ArrayList<>();
-    private static final DateTimeFormatter ISO = DateTimeFormatter.ISO_LOCAL_DATE;
 
     @Override protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -65,11 +74,26 @@ public class InsightsActivity extends AppCompatActivity {
             return false;
         });
 
-        // Tabs (προς το παρόν μόνο Steps)
+        // Tabs
         MaterialButtonToggleGroup toggle = findViewById(R.id.toggleTabs);
         toggle.addOnButtonCheckedListener((g, id, checked) -> {
             if (!checked) return;
             if (id == R.id.btnTabSteps) {
+                currentMode = Mode.STEPS;
+                chipsVitals.setVisibility(android.view.View.GONE);
+                renderForCurrentRange();
+            } else if (id == R.id.btnTabVitals) {
+                currentMode = Mode.VITALS;
+                chipsVitals.setVisibility(android.view.View.VISIBLE);
+                // default επιλογή για vitals αν δεν έχει μπει κάτι
+                if (chipsVitals.getCheckedChipId() == android.view.View.NO_ID) {
+                    ((Chip) findViewById(R.id.chipVitalAvgHr)).setChecked(true);
+                }
+                renderForCurrentRange();
+
+            } else if (id == R.id.btnTabCalories) {              // <<< ΠΡΟΣΘΗΚΗ
+                currentMode = Mode.CALORIES;                     // <<< ΠΡΟΣΘΗΚΗ
+                chipsVitals.setVisibility(android.view.View.GONE);// <<< ΠΡΟΣΘΗΚΗ
                 renderForCurrentRange();
             } else {
                 Toast.makeText(this, "Coming soon", Toast.LENGTH_SHORT).show();
@@ -77,20 +101,31 @@ public class InsightsActivity extends AppCompatActivity {
             }
         });
 
-        barChart = findViewById(R.id.barChart);
-        tvAvg = findViewById(R.id.tvAvg);
-        tvTotal = findViewById(R.id.tvTotal);
-        chips = findViewById(R.id.chipsRange);
+        barChart   = findViewById(R.id.barChart);
+        tvAvg      = findViewById(R.id.tvAvg);
+        tvTotal    = findViewById(R.id.tvTotal);
+        chipsRange = findViewById(R.id.chipsRange);
+        chipsVitals= findViewById(R.id.chipsVitals);
 
-        // Προεπιλογή: 30 μέρες
+        // Προεπιλογές
         ((Chip) findViewById(R.id.chip30d)).setChecked(true);
 
         setupChart();
 
-        // Listeners στα chips
-        chips.setOnCheckedStateChangeListener((group, checkedIds) -> renderForCurrentRange());
+        // Listeners
+        chipsRange.setOnCheckedStateChangeListener((group, ids) -> renderForCurrentRange());
+        chipsVitals.setOnCheckedStateChangeListener((group, ids) -> {
+            int id = chipsVitals.getCheckedChipId();
+            if (id == R.id.chipVitalAvgHr)      vitalMetric = VitalMetric.AVG_HR;
+            else if (id == R.id.chipVitalRestHr) vitalMetric = VitalMetric.REST_HR;
+            else if (id == R.id.chipVitalMaxHr)  vitalMetric = VitalMetric.MAX_HR;
+            else if (id == R.id.chipVitalMinHr)  vitalMetric = VitalMetric.MIN_HR;
+            else if (id == R.id.chipVitalStress) vitalMetric = VitalMetric.STRESS_AVG;
 
-        // Φέρε πραγματικά δεδομένα (πολλές μέρες)
+            renderForCurrentRange();
+        });
+
+        // Fetch πραγματικών δεδομένων (πολλές μέρες)
         fetchMany();
     }
 
@@ -115,13 +150,11 @@ public class InsightsActivity extends AppCompatActivity {
         left.setTextColor(Color.DKGRAY);
         barChart.getAxisRight().setEnabled(false);
 
-        // Αρχικό max (θα αναπροσαρμοστεί στο render)
-        int goal = UserPrefs.getGoalSteps(this);
-        left.setAxisMaximum(Math.max(goal, 10000));
         left.setAxisMinimum(0f);
+        left.setAxisMaximum(Math.max(UserPrefs.getGoalSteps(this), 10000)); // αρχικό
     }
 
-    /** Τραβά πολλές μέρες από το API (ίδιο endpoint με DailiesActivity, χωρίς φίλτρο “σήμερα”). */
+    /** Τραβά πολλές μέρες από backend */
     private void fetchMany() {
         OkHttpClient client = new OkHttpClient.Builder()
                 .addInterceptor(chain -> {
@@ -157,11 +190,10 @@ public class InsightsActivity extends AppCompatActivity {
                 final String body = response.body() != null ? response.body().string() : "";
                 runOnUiThread(() -> {
                     if (body == null || body.isEmpty()) {
-                        Toast.makeText(InsightsActivity.this, "No data", Toast.LENGTH_SHORT).show();
                         allDays = new ArrayList<>();
                         renderForCurrentRange();
                     } else {
-                        parseMany(body);   // ΓΕΜΙΖΕΙ allDays με ΟΛΕΣ τις μέρες
+                        parseMany(body);
                         renderForCurrentRange();
                     }
                 });
@@ -169,7 +201,7 @@ public class InsightsActivity extends AppCompatActivity {
         });
     }
 
-    /** Παίρνει ΟΛΕΣ τις μέρες από το JSON του /dailies (χωρίς φίλτρο “σήμερα”). */
+    /** Γεμίζει allDays ΜΕ όλες τις μέρες και ΟΛΑ τα πεδία που χρειαζόμαστε για vitals/steps */
     private void parseMany(String payload) {
         try {
             List<DailiesModels.Day> tmp = new ArrayList<>();
@@ -183,16 +215,19 @@ public class InsightsActivity extends AppCompatActivity {
                 if (dObj == null) continue;
 
                 DailiesModels.Daily d = new DailiesModels.Daily();
-                // προτίμησε το top-level calendarDate αν υπάρχει
-                String cal = dayObj.optString("calendarDate", dObj.optString("calendarDate", null));
-                d.calendarDate = cal;
-                d.steps = dObj.optInt("steps");
-                // (αν θελήσεις κι άλλα πεδία, πρόσθεσέ τα εδώ)
+                d.calendarDate = dayObj.optString("calendarDate", dObj.optString("calendarDate", null));
+                d.steps        = dObj.optInt("steps");
+                d.averageHeartRateInBeatsPerMinute = dObj.optInt("averageHeartRateInBeatsPerMinute");
+                d.restingHeartRateInBeatsPerMinute = dObj.optInt("restingHeartRateInBeatsPerMinute");
+                d.maxHeartRateInBeatsPerMinute     = dObj.optInt("maxHeartRateInBeatsPerMinute");
+                d.minHeartRateInBeatsPerMinute     = dObj.optInt("minHeartRateInBeatsPerMinute");
+                d.averageStressLevel               = dObj.optInt("averageStressLevel");
+                d.activeKilocalories               = dObj.optInt("activeKilocalories");
 
                 DailiesModels.Day day = new DailiesModels.Day();
                 day.calendarDate = d.calendarDate;
                 day.data = d;
-                // αγνόησε records χωρίς ημερομηνία
+
                 if (day.calendarDate != null && !day.calendarDate.isEmpty()) {
                     tmp.add(day);
                 }
@@ -207,15 +242,15 @@ public class InsightsActivity extends AppCompatActivity {
     private void renderForCurrentRange() {
         if (allDays == null) allDays = new ArrayList<>();
 
-        // sort by date asc (ασφαλής parse)
+        // sort by date
         try {
             Collections.sort(allDays, (a, b) ->
                     LocalDate.parse(a.calendarDate, ISO).compareTo(LocalDate.parse(b.calendarDate, ISO)));
-        } catch (Exception ignore) { /* αν χαλάσει parsing, αφήνουμε την τρέχουσα σειρά */ }
+        } catch (Exception ignore) {}
 
         // εύρος
-        int days = 30; // default
-        if (((Chip)findViewById(R.id.chip7d)).isChecked())    days = 7;
+        int days = 30;
+        if (((Chip)findViewById(R.id.chip7d)).isChecked()) days = 7;
         else if (((Chip)findViewById(R.id.chip6m)).isChecked()) days = 180;
         else if (((Chip)findViewById(R.id.chip1y)).isChecked()) days = 365;
 
@@ -231,33 +266,58 @@ public class InsightsActivity extends AppCompatActivity {
             } catch (Exception ignore) {}
         }
 
-        // Entries
+        // Επιλογή metric
+        java.util.function.ToIntFunction<DailiesModels.Daily> selector;
+        if (currentMode == Mode.STEPS) {
+            selector = dd -> dd.steps;
+        } else if (currentMode == Mode.CALORIES) {           // <<< ΠΡΟΣΘΗΚΗ
+            selector = dd -> dd.activeKilocalories;          // <<< ΠΡΟΣΘΗΚΗ
+        } else {
+            switch (vitalMetric) {
+                case REST_HR:    selector = dd -> dd.restingHeartRateInBeatsPerMinute; break;
+                case MAX_HR:     selector = dd -> dd.maxHeartRateInBeatsPerMinute;     break;
+                case MIN_HR:     selector = dd -> dd.minHeartRateInBeatsPerMinute;     break;
+                case STRESS_AVG: selector = dd -> dd.averageStressLevel;               break;
+
+                case AVG_HR:
+                default:         selector = dd -> dd.averageHeartRateInBeatsPerMinute; break;
+            }
+        }
+
+        // Entries & KPIs
         List<BarEntry> entries = new ArrayList<>();
         int idx = 0;
         int total = 0;
-        int maxInWindow = 0;
+        int maxVal = 0;
+
         for (DailiesModels.Day d : window) {
-            int s = d.data.steps;
-            entries.add(new BarEntry(idx++, s));
-            total += s;
-            if (s > maxInWindow) maxInWindow = s;
+            int val = Math.max(0, selector.applyAsInt(d.data));
+            entries.add(new BarEntry(idx++, val));
+            total += val;
+            if (val > maxVal) maxVal = val;
         }
+
         if (entries.isEmpty()) {
-            // βάλ’ το πολύ 14 κολώνες 0 για να μη δείχνει κενό
             int zeros = Math.min(days, 14);
             for (int i = 0; i < zeros; i++) entries.add(new BarEntry(i, 0));
+            maxVal = 0;
+            total  = 0;
         }
 
-        // KPIs
         int avg = window.isEmpty() ? 0 : Math.round(total * 1f / window.size());
         tvAvg.setText("Average\n" + String.format(Locale.getDefault(), "%,d", avg));
-        tvTotal.setText("Total\n" + String.format(Locale.getDefault(), "%,d", total));
+        tvTotal.setText("Total\n"   + String.format(Locale.getDefault(), "%,d", total));
 
-        // y-axis = max(goal, maxInWindow) * 1.1
-        int goal = UserPrefs.getGoalSteps(this);
-        float yMax = (float) Math.max(goal, maxInWindow);
+        // Y axis scale
         YAxis left = barChart.getAxisLeft();
-        left.setAxisMaximum(yMax > 0 ? yMax * 1.1f : Math.max(goal, 10000));
+        if (currentMode == Mode.STEPS) {
+            int goal = UserPrefs.getGoalSteps(this);
+            float yMax = Math.max(goal, maxVal);
+            left.setAxisMaximum(yMax > 0 ? yMax * 1.1f : Math.max(goal, 10000));
+        } else {
+            // vitals & calories: auto-scale
+            left.setAxisMaximum(maxVal > 0 ? maxVal * 1.1f : 100f);
+        }
         left.setAxisMinimum(0f);
 
         BarDataSet set = new BarDataSet(entries, "");

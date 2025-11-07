@@ -46,56 +46,107 @@
                     android:layout_weight="1"
                     android:text="Steps"/>
 
+
+                <!-- ΝΕΟ -->
                 <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnTabWeight"
+                    android:id="@+id/btnTabCalories"
                     style="?attr/materialButtonOutlinedStyle"
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
                     android:layout_weight="1"
-                    android:text="Weight"/>
+                    android:text="Calories"/>
+
+
             </com.google.android.material.button.MaterialButtonToggleGroup>
 
-            <!-- Range chips -->
+            <!-- Range chips (κοινά για Steps/Vitals) -->
             <com.google.android.material.chip.ChipGroup
                 android:id="@+id/chipsRange"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:padding="4dp"
-                app:singleSelection="true"
-                app:selectionRequired="true"
-                app:chipSpacing="8dp">
+                app:singleSelection="true">
 
                 <com.google.android.material.chip.Chip
                     android:id="@+id/chip7d"
-                    style="@style/Widget.Material3.Chip.Filter"
+                    style="@style/Widget.MaterialComponents.Chip.Choice"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="7 days"/>
 
                 <com.google.android.material.chip.Chip
                     android:id="@+id/chip30d"
-                    style="@style/Widget.Material3.Chip.Filter"
+                    style="@style/Widget.MaterialComponents.Chip.Choice"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:checked="true"
                     android:text="30 days"/>
 
                 <com.google.android.material.chip.Chip
                     android:id="@+id/chip6m"
-                    style="@style/Widget.Material3.Chip.Filter"
+                    style="@style/Widget.MaterialComponents.Chip.Choice"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="6 months"/>
 
                 <com.google.android.material.chip.Chip
                     android:id="@+id/chip1y"
-                    style="@style/Widget.Material3.Chip.Filter"
+                    style="@style/Widget.MaterialComponents.Chip.Choice"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="1 year"/>
             </com.google.android.material.chip.ChipGroup>
 
-            <!-- KPI row -->
+
+            <!-- Vitals metric chips (φαίνονται μόνο στο Vitals) -->
+            <com.google.android.material.chip.ChipGroup
+                android:id="@+id/chipsVitals"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:padding="4dp"
+                android:layout_marginTop="6dp"
+                android:visibility="gone"
+                app:singleSelection="true">
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chipVitalAvgHr"
+                    style="@style/Widget.MaterialComponents.Chip.Choice"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Avg HR"/>
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chipVitalRestHr"
+                    style="@style/Widget.MaterialComponents.Chip.Choice"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Resting HR"/>
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chipVitalMaxHr"
+                    style="@style/Widget.MaterialComponents.Chip.Choice"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Max HR"/>
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chipVitalMinHr"
+                    style="@style/Widget.MaterialComponents.Chip.Choice"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Min HR"/>
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chipVitalStress"
+                    style="@style/Widget.MaterialComponents.Chip.Choice"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Stress Avg"/>
+
+
+            </com.google.android.material.chip.ChipGroup>
+
+
+            <!-- KPIs -->
             <LinearLayout
                 android:id="@+id/kpiRow"
                 android:layout_width="match_parent"
@@ -103,7 +154,6 @@
                 android:orientation="horizontal"
                 android:padding="8dp"
                 android:layout_marginTop="8dp">
-
                 <androidx.appcompat.widget.AppCompatTextView
                     android:id="@+id/tvAvg"
                     android:layout_width="0dp"
@@ -112,14 +162,13 @@
                     android:text="Average\n-"
                     android:textStyle="bold"
                     android:textSize="18sp"/>
-
                 <androidx.appcompat.widget.AppCompatTextView
                     android:id="@+id/tvTotal"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:gravity="end"
                     android:text="Total\n-"
+                    android:gravity="end"
                     android:textStyle="bold"
                     android:textSize="18sp"/>
             </LinearLayout>
