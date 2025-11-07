@@ -3,4 +3,9 @@
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
     <color name="nav_active_bg">#B8A9FF</color>
+    <color name="seg_blue">#2680EB</color>
+    <color name="seg_white">#FFFFFFFF</color>
+    <color name="seg_purple_500">#6C63FF</color>
+    <color name="seg_purple_100">#EEE6FF</color>
+
 </resources>

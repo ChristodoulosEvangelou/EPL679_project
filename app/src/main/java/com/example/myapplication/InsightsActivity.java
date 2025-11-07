@@ -43,6 +43,7 @@ public class InsightsActivity extends AppCompatActivity {
     private static final String TAG = "Insights";
     private static final String USER_ID = "3cdf364a-da5b-453f-b0e7-6983f2f1e310"; // δικό σου
     private static final DateTimeFormatter ISO = DateTimeFormatter.ISO_LOCAL_DATE;
+    private View vitalsBar;
 
     private enum Mode { STEPS, VITALS, CALORIES }
     private enum VitalMetric {
@@ -53,17 +54,23 @@ public class InsightsActivity extends AppCompatActivity {
     private VitalMetric vitalMetric = VitalMetric.AVG_HR;
 
     private BarChart barChart;
-    private ChipGroup chipsRange, chipsVitals;
+    //private ChipGroup chipsRange, chipsVitals;
+    private MaterialButtonToggleGroup rangeToggle;
+    private MaterialButtonToggleGroup vitalsToggle;
     private androidx.appcompat.widget.AppCompatTextView tvAvg, tvTotal;
 
     private List<DailiesModels.Day> allDays = new ArrayList<>();
 
-    @Override protected void onCreate(@Nullable Bundle savedInstanceState) {
+    @Override
+    protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_insights);
 
+
+
         // Bottom nav
         BottomNavigationView bottom = findViewById(R.id.bottomNav);
+
         bottom.setSelectedItemId(R.id.nav_insights);
         bottom.setOnItemSelectedListener(item -> {
             int id = item.getItemId();
@@ -74,60 +81,81 @@ public class InsightsActivity extends AppCompatActivity {
             return false;
         });
 
-        // Tabs
-        MaterialButtonToggleGroup toggle = findViewById(R.id.toggleTabs);
-        toggle.addOnButtonCheckedListener((g, id, checked) -> {
+        // Views
+        vitalsBar   = findViewById(R.id.vitalsBar);   // το HorizontalScrollView με τα vitals
+        vitalsToggle = findViewById(R.id.vitalsToggle);
+        barChart = findViewById(R.id.barChart);
+        tvAvg    = findViewById(R.id.tvAvg);
+        tvTotal  = findViewById(R.id.tvTotal);
+
+        // --- Segmented: Tabs (Steps | Vitals | Calories)
+        MaterialButtonToggleGroup toggleTabs = findViewById(R.id.toggleTabs);
+        toggleTabs.addOnButtonCheckedListener((g, id, checked) -> {
             if (!checked) return;
+
             if (id == R.id.btnTabSteps) {
                 currentMode = Mode.STEPS;
-                chipsVitals.setVisibility(android.view.View.GONE);
-                renderForCurrentRange();
-            } else if (id == R.id.btnTabVitals) {
-                currentMode = Mode.VITALS;
-                chipsVitals.setVisibility(android.view.View.VISIBLE);
-                // default επιλογή για vitals αν δεν έχει μπει κάτι
-                if (chipsVitals.getCheckedChipId() == android.view.View.NO_ID) {
-                    ((Chip) findViewById(R.id.chipVitalAvgHr)).setChecked(true);
-                }
+                vitalsBar.setVisibility(View.GONE);
+
+                updateKpiVisibility();
                 renderForCurrentRange();
 
-            } else if (id == R.id.btnTabCalories) {              // <<< ΠΡΟΣΘΗΚΗ
-                currentMode = Mode.CALORIES;                     // <<< ΠΡΟΣΘΗΚΗ
-                chipsVitals.setVisibility(android.view.View.GONE);// <<< ΠΡΟΣΘΗΚΗ
+            } else if (id == R.id.btnTabVitals) {
+                currentMode = Mode.VITALS;
+                vitalsBar.setVisibility(View.VISIBLE);
+
+                // default επιλογή vitals αν τίποτα δεν είναι τσεκαρισμένο
+                MaterialButtonToggleGroup vt = findViewById(R.id.vitalsToggle);
+                if (vt.getCheckedButtonId() == View.NO_ID) {
+                    vt.check(R.id.btnVitalAvgHr);
+                }
+                updateKpiVisibility();
                 renderForCurrentRange();
-            } else {
-                Toast.makeText(this, "Coming soon", Toast.LENGTH_SHORT).show();
-                g.check(R.id.btnTabSteps);
+
+            } else if (id == R.id.btnTabCalories) {
+                currentMode = Mode.CALORIES;
+                vitalsBar.setVisibility(View.GONE);
+
+                updateKpiVisibility();
+                renderForCurrentRange();
             }
         });
 
-        barChart   = findViewById(R.id.barChart);
-        tvAvg      = findViewById(R.id.tvAvg);
-        tvTotal    = findViewById(R.id.tvTotal);
-        chipsRange = findViewById(R.id.chipsRange);
-        chipsVitals= findViewById(R.id.chipsVitals);
+        // --- Segmented: Range (7d | 30d | 6m | 1y)
+        rangeToggle = findViewById(R.id.rangeToggle);
+        rangeToggle.check(R.id.btnR30d); // προεπιλογή
+        rangeToggle.addOnButtonCheckedListener((g, id, checked) -> {
+            if (checked) renderForCurrentRange();
+        });
 
-        // Προεπιλογές
-        ((Chip) findViewById(R.id.chip30d)).setChecked(true);
-
-        setupChart();
-
-        // Listeners
-        chipsRange.setOnCheckedStateChangeListener((group, ids) -> renderForCurrentRange());
-        chipsVitals.setOnCheckedStateChangeListener((group, ids) -> {
-            int id = chipsVitals.getCheckedChipId();
-            if (id == R.id.chipVitalAvgHr)      vitalMetric = VitalMetric.AVG_HR;
-            else if (id == R.id.chipVitalRestHr) vitalMetric = VitalMetric.REST_HR;
-            else if (id == R.id.chipVitalMaxHr)  vitalMetric = VitalMetric.MAX_HR;
-            else if (id == R.id.chipVitalMinHr)  vitalMetric = VitalMetric.MIN_HR;
-            else if (id == R.id.chipVitalStress) vitalMetric = VitalMetric.STRESS_AVG;
-
+        // --- Segmented (scrollable): Vitals metrics (Avg/Rest/Max/Min/Stress)
+        vitalsToggle = findViewById(R.id.vitalsToggle);
+        vitalsToggle.check(R.id.btnVitalAvgHr); // προεπιλογή
+        vitalsToggle.addOnButtonCheckedListener((g, id, checked) -> {
+            if (!checked) return;
+            if (id == R.id.btnVitalAvgHr)      vitalMetric = VitalMetric.AVG_HR;
+            else if (id == R.id.btnVitalRestHr) vitalMetric = VitalMetric.REST_HR;
+            else if (id == R.id.btnVitalMaxHr)  vitalMetric = VitalMetric.MAX_HR;
+            else if (id == R.id.btnVitalMinHr)  vitalMetric = VitalMetric.MIN_HR;
+            else if (id == R.id.btnVitalStress) vitalMetric = VitalMetric.STRESS_AVG; // Active kcal αφαιρέθηκε
             renderForCurrentRange();
         });
 
-        // Fetch πραγματικών δεδομένων (πολλές μέρες)
+        // styling chart
+        setupChart();
+
+        // φέρε πολλές μέρες
         fetchMany();
+
+        // αρχική ορατότητα KPIs (default Steps)
+        updateKpiVisibility();
     }
+
+    /** Κρύβει το Total στα Vitals, αλλιώς το δείχνει */
+    private void updateKpiVisibility() {
+        tvTotal.setVisibility(currentMode == Mode.VITALS ? View.INVISIBLE : View.VISIBLE);
+    }
+
 
     private void setupChart() {
         barChart.setScaleEnabled(false);
@@ -249,10 +277,13 @@ public class InsightsActivity extends AppCompatActivity {
         } catch (Exception ignore) {}
 
         // εύρος
-        int days = 30;
-        if (((Chip)findViewById(R.id.chip7d)).isChecked()) days = 7;
-        else if (((Chip)findViewById(R.id.chip6m)).isChecked()) days = 180;
-        else if (((Chip)findViewById(R.id.chip1y)).isChecked()) days = 365;
+        int days;
+        int checked = rangeToggle.getCheckedButtonId();
+        if (checked == R.id.btnR7d)      days = 7;
+        else if (checked == R.id.btnR6m) days = 180;
+        else if (checked == R.id.btnR1y) days = 365;
+        else                             days = 30; // default
+
 
         LocalDate to = LocalDate.now();
         LocalDate from = to.minusDays(days - 1);
@@ -306,7 +337,15 @@ public class InsightsActivity extends AppCompatActivity {
 
         int avg = window.isEmpty() ? 0 : Math.round(total * 1f / window.size());
         tvAvg.setText("Average\n" + String.format(Locale.getDefault(), "%,d", avg));
-        tvTotal.setText("Total\n"   + String.format(Locale.getDefault(), "%,d", total));
+
+        if (currentMode == Mode.VITALS) {
+            // Στα vitals δεν δείχνουμε total
+            tvTotal.setVisibility(View.GONE);
+        } else {
+            tvTotal.setVisibility(View.VISIBLE);
+            tvTotal.setText("Total\n" + String.format(Locale.getDefault(), "%,d", total));
+        }
+
 
         // Y axis scale
         YAxis left = barChart.getAxisLeft();

@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:state_checked="true" android:color="#1D1B20"/>  <!-- πιο σκούρο -->
-    <item android:color="#6A6A6A"/>                               <!-- γκρι -->
+    <!-- checked: άσπρα γράμματα -->
+    <item android:state_checked="true" android:color="@color/seg_white"/>
+    <!-- default: γαλάζια γράμματα -->
+    <item android:color="@color/seg_blue"/>
 </selector>

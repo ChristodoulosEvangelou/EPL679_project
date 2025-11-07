@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- checked: γαλάζιο background -->
+    <item android:state_checked="true" android:color="@color/seg_purple_500"/>
+    <!-- default: λευκό background -->
+    <item android:color="@color/seg_white"/>
+</selector>

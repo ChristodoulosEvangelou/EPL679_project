@@ -125,7 +125,7 @@ public class DailyAdapter extends RecyclerView.Adapter<DailyAdapter.VH> {
                 d.activeKilocalories + " kcal", "#FFFF00");
 
         bindMetric(h.cardDistance,
-                R.drawable.ic_distance, "Distance",
+                R.drawable.location, "Distance",
                 FormatUtils.km(d.distanceInMeters) + " km", "#B4FFB7");
 
         bindMetric(h.cardAvgHr,
@@ -133,7 +133,7 @@ public class DailyAdapter extends RecyclerView.Adapter<DailyAdapter.VH> {
                 d.averageHeartRateInBeatsPerMinute + " bpm", "#EEC522");
 
         bindMetric(h.cardActiveTime,
-                R.drawable.ic_active_time, "Active Time",
+                R.drawable.clocktime, "Active Time",
                 FormatUtils.humanDuration(d.activeTimeInSeconds), "#DB7070");
 
         // --- WATER INTAKE ---

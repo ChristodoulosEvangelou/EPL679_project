@@ -22,81 +22,47 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
 
-            <!-- Mini tabs (Profile | Goals) -->
-            <!-- mini tabs with icons (PROFILE SELECTED) -->
-            <com.google.android.material.card.MaterialCardView
+            <!-- Mini tabs (Profile | Goals) - NO CARD WRAPPER -->
+            <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="56dp"
+                android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
-                app:cardCornerRadius="28dp"
-                app:cardUseCompatPadding="false"
-                app:cardBackgroundColor="#EEE6FF">
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp">
 
-                <androidx.constraintlayout.widget.ConstraintLayout
+                <com.google.android.material.button.MaterialButtonToggleGroup
+                    android:id="@+id/toggleTabs"
                     android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:paddingStart="8dp"
-                    android:paddingEnd="8dp">
+                    android:layout_height="48dp"
+                    app:singleSelection="true"
+                    app:selectionRequired="true"
+                    app:checkedButton="@+id/btnTabProfile">
 
-                    <com.google.android.material.button.MaterialButtonToggleGroup
-                        android:id="@+id/toggleTabs"
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnTabProfile"
+                        style="@style/SegFirst"
                         android:layout_width="0dp"
-                        android:layout_height="40dp"
-                        app:singleSelection="true"
-                        app:selectionRequired="true"
-                        app:checkedButton="@+id/btnTabProfile"
-                        app:layout_constraintTop_toTopOf="parent"
-                        app:layout_constraintBottom_toBottomOf="parent"
-                        app:layout_constraintStart_toStartOf="parent"
-                        app:layout_constraintEnd_toEndOf="parent">
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        android:text="Profile"
+                        app:icon="@drawable/profile_button"
+                        app:iconPadding="6dp"
+                        app:iconGravity="textStart"
+                        app:iconTint="@color/seg_btn_text"/>
 
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btnTabProfile"
-                            style="?attr/materialButtonOutlinedStyle"
-                            android:layout_width="0dp"
-                            android:layout_height="match_parent"
-                            android:layout_weight="1"
-                            android:text="Info"
-                            android:textAllCaps="false"
-                            android:textColor="@color/selector_segment_text"
-                            app:icon="@drawable/profile_button"
-                            app:iconGravity="textStart"
-                            app:iconPadding="8dp"
-                            app:iconTint="@color/selector_segment_text"
-                            app:backgroundTint="@color/selector_segment_bg"
-                            app:cornerRadius="20dp"
-                            app:strokeColor="@android:color/transparent"/>
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btnTabGoals"
-                            style="?attr/materialButtonOutlinedStyle"
-                            android:layout_width="0dp"
-                            android:layout_height="match_parent"
-                            android:layout_weight="1"
-                            android:text="Goals"
-                            android:textAllCaps="false"
-                            android:textColor="@color/selector_segment_text"
-                            app:icon="@drawable/ic_goal"
-                            app:iconGravity="textStart"
-                            app:iconPadding="8dp"
-                            app:iconTint="@color/selector_segment_text"
-                            app:backgroundTint="@color/selector_segment_bg"
-                            app:cornerRadius="20dp"
-                            app:strokeColor="@android:color/transparent"/>
-                    </com.google.android.material.button.MaterialButtonToggleGroup>
-
-                    <!-- divider στο κέντρο για το look -->
-                    <View
-                        android:layout_width="1dp"
-                        android:layout_height="24dp"
-                        android:background="#B7ACD9"
-                        app:layout_constraintTop_toTopOf="@id/toggleTabs"
-                        app:layout_constraintBottom_toBottomOf="@id/toggleTabs"
-                        app:layout_constraintStart_toStartOf="parent"
-                        app:layout_constraintEnd_toEndOf="parent"/>
-                </androidx.constraintlayout.widget.ConstraintLayout>
-            </com.google.android.material.card.MaterialCardView>
-
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnTabGoals"
+                        style="@style/SegLast"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        android:text="Goals"
+                        app:icon="@drawable/ic_goal"
+                        app:iconPadding="6dp"
+                        app:iconGravity="textStart"
+                        app:iconTint="@color/seg_btn_text"/>
+                </com.google.android.material.button.MaterialButtonToggleGroup>
+            </LinearLayout>
 
             <!-- Avatar placeholder -->
             <ImageView
