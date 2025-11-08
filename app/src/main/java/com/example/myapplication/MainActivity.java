@@ -28,6 +28,9 @@ public class MainActivity extends AppCompatActivity {
     private static final String TAG = "DailiesCall";
     private static final String USER_ID = "3cdf364a-da5b-453f-b0e7-6983f2f1e310"; // βάλ' το δικό σας
 
+    // guard για να μην κάνουμε πολλαπλά fetch κατά λάθος (π.χ. onResume 2 φορές)
+    private boolean isFetching = false;
+
     @Override protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
@@ -42,26 +45,34 @@ public class MainActivity extends AppCompatActivity {
             String cookie = SecureCookie.get(getApplicationContext());
             if (cookie != null && !cookie.isEmpty()) {
                 Toast.makeText(this, "Ήδη συνδεδεμένο. Θα χρησιμοποιήσω το υπάρχον session.", Toast.LENGTH_SHORT).show();
-                // Optional: fetchDailies();
+                // Auto fetch όταν υπάρχει session
+                fetchDailies();
             } else {
                 // Go to link/registration flow (no payload here)
                 startActivity(new Intent(this, GarminLinkActivity.class));
             }
         });
 
-        Button btnFetch = findViewById(R.id.btnFetchDailies); // βάλε δεύτερο κουμπί στο XML αν θέλεις
-        if (btnFetch != null) {
-            btnFetch.setOnClickListener(v -> fetchDailies());
+//        Button btnFetch = findViewById(R.id.btnFetchDailies); // βάλε δεύτερο κουμπί στο XML αν θέλεις
+//        if (btnFetch != null) {
+//            btnFetch.setOnClickListener(v -> fetchDailies());
+//        }
+    }
+    private static final boolean AUTO_FETCH_ON_RESUME = false;
+    @Override protected void onResume() {
+        super.onResume();
+        if (AUTO_FETCH_ON_RESUME) {
+            String cookie = SecureCookie.get(getApplicationContext());
+            if (cookie != null && !cookie.isEmpty()) {
+                fetchDailies();
+            }
         }
     }
 
-    @Override protected void onResume() {
-        super.onResume();
-        // Αν έχεις ήδη κάνει registration και υπάρχει cookie, μπορείς να κάνεις auto-fetch
-        // fetchDailies();
-    }
-
     private void fetchDailies() {
+        if (isFetching) return; // guard
+        isFetching = true;
+
         OkHttpClient client = new OkHttpClient.Builder()
                 .addInterceptor(chain -> {
                     Request orig = chain.request();
@@ -74,6 +85,7 @@ public class MainActivity extends AppCompatActivity {
                     if (res.code() == 401 || res.code() == 403) {
                         // cookie έληξε → ξανακάνε registration
                         runOnUiThread(() -> {
+                            isFetching = false;
                             startActivity(new Intent(this, GarminLinkActivity.class));
                         });
                     }
@@ -87,6 +99,7 @@ public class MainActivity extends AppCompatActivity {
 
         client.newCall(request).enqueue(new Callback() {
             @Override public void onFailure(Call call, IOException e) {
+                isFetching = false;
                 Log.e(TAG, "Network error", e);
                 runOnUiThread(() -> {
                     // Προβάλλε το error στην οθόνη εμφάνισης για συνέπεια
@@ -101,6 +114,8 @@ public class MainActivity extends AppCompatActivity {
                 final String body = response.body() != null ? response.body().string() : "";
 
                 runOnUiThread(() -> {
+                    isFetching = false;
+
                     if (!ok) {
                         Toast.makeText(MainActivity.this, "Request failed: " + response.code(), Toast.LENGTH_SHORT).show();
                         // ΜΗΝ ανοίγεις activity με ολόκληρο το body όταν αποτυγχάνει
@@ -124,6 +139,7 @@ public class MainActivity extends AppCompatActivity {
                                 .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
 
                         startActivity(it);
+                        finish(); // πήγαινε Home και μην γυρίζεις πίσω στην αρχική
                     } catch (Exception e) {
                         Log.e(TAG, "Failed to pass payload via file", e);
                         Toast.makeText(MainActivity.this, "Internal error saving response", Toast.LENGTH_SHORT).show();

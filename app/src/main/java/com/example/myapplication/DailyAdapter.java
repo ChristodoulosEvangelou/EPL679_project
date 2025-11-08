@@ -19,6 +19,8 @@ import com.google.android.material.progressindicator.LinearProgressIndicator;
 
 import java.util.ArrayList;
 import java.util.List;
+import android.util.TypedValue;
+import android.graphics.Typeface;
 
 public class DailyAdapter extends RecyclerView.Adapter<DailyAdapter.VH> {
 
@@ -50,7 +52,7 @@ public class DailyAdapter extends RecyclerView.Adapter<DailyAdapter.VH> {
         Context ctx = h.itemView.getContext();
         int goalSteps = Math.max(1, UserPrefs.getGoalSteps(ctx));
         int pct = Math.round(100f * Math.max(0, d.steps) / goalSteps);
-        h.stepsDonut.setStrokeWidthDp(22f);
+        h.stepsDonut.setStrokeWidthDp(12f);
         h.stepsDonut.setTrackColor(0xFFD1D5DB);
         h.stepsDonut.setProgressColor(0xFF3B82F6);
         h.stepsDonut.setProgress(pct);
@@ -97,7 +99,7 @@ public class DailyAdapter extends RecyclerView.Adapter<DailyAdapter.VH> {
         });
     }
 
-    private void bindMetric(View card, int iconRes, String title, String value, String bgHex) {
+    /*private void bindMetric(View card, int iconRes, String title, String value, String bgHex) {
         ImageView iv = card.findViewById(R.id.ivIcon);
         TextView tTitle = card.findViewById(R.id.tvTitle);
         TextView tValue = card.findViewById(R.id.tvValue);
@@ -109,7 +111,52 @@ public class DailyAdapter extends RecyclerView.Adapter<DailyAdapter.VH> {
         } else {
             card.setBackgroundColor(Color.parseColor(bgHex));
         }
+    }*/
+
+
+    private void bindMetric(View card, int iconRes, String title, String value, String bgHex) {
+        ImageView iv    = card.findViewById(R.id.ivIcon);
+        TextView tTitle = card.findViewById(R.id.tvTitle);
+        TextView tValue = card.findViewById(R.id.tvValue);
+
+        iv.setImageResource(iconRes);
+
+        // default icon size (dp)
+        int iconDp = 28;
+
+        // per-icon overrides με if/else if
+        if (iconRes == R.drawable.ic_heart_rate) {
+            iconDp = 32; // πιο μεγάλο για HR
+        } else if (iconRes == R.drawable.clocktime) {
+            iconDp = 28;
+        } else if (iconRes == R.drawable.location) {
+            iconDp = 30;
+        } else if (iconRes == R.drawable.ic_calories) {
+            iconDp = 34;
+        }
+
+        ViewGroup.LayoutParams lp = iv.getLayoutParams();
+        lp.width  = dp(card, iconDp);
+        lp.height = dp(card, iconDp);
+        iv.setLayoutParams(lp);
+        iv.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        iv.setAdjustViewBounds(true);
+
+        tTitle.setText(title);
+        tTitle.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 16f);
+
+        tValue.setText(value);
+        tValue.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 20f);
+        tValue.setTypeface(tValue.getTypeface(), android.graphics.Typeface.BOLD);
+
+        if (card instanceof com.google.android.material.card.MaterialCardView) {
+            ((com.google.android.material.card.MaterialCardView) card)
+                    .setCardBackgroundColor(Color.parseColor(bgHex));
+        } else {
+            card.setBackgroundColor(Color.parseColor(bgHex));
+        }
     }
+
 
     private void renderWaterDots(LinearLayout row, int count, int goal) {
         row.removeAllViews();

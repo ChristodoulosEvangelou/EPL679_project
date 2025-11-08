@@ -5,7 +5,11 @@
     android:layout_width="match_parent"
     android:layout_height="100dp"
     app:cardCornerRadius="16dp"
-    app:cardBackgroundColor="#FFF9C4">
+    app:cardBackgroundColor="#FFF9C4"
+    app:cardUseCompatPadding="false"
+    app:cardElevation="0dp"
+    app:strokeWidth="0dp"
+    app:strokeColor="@android:color/transparent">
 
     <LinearLayout
         android:orientation="vertical"
